@@ -1,7 +1,9 @@
 import { createMuiTheme, makeStyles } from "@material-ui/core/styles";
 
+// TODO: https://material.io/design/material-theming/implementing-your-theme.html#color
 export const theme = createMuiTheme();
 
+// TODO: use BEM naming conventions for these
 export const useStyles = makeStyles({
   app: {
     height: "calc(100vh - 16px)",
@@ -10,14 +12,14 @@ export const useStyles = makeStyles({
   main: {
     "max-height": "calc(100vh - 64px)"
   },
-  storyView: {
+  storyPanel: {
     padding: theme.spacing(1),
     textAlign: "left",
     overflow: "auto",
     height: "calc(100vh - 96px)",
     "max-height": "calc(100vh - 96px)"
   },
-  sideView: {
+  controlsPanel: {
     height: "calc(100vh - 152px)",
     "max-height": "calc(100vh - 96px)",
     padding: theme.spacing(1)
