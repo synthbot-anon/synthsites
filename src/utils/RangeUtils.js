@@ -70,7 +70,7 @@ export default class RangeUtils {
           return true;
         }
       } else {
-        for (let i = currentNode.childNodes.length-1; i >= 0; i--) {
+        for (let i = currentNode.childNodes.length - 1; i >= 0; i--) {
           stack.push(currentNode.childNodes[i]);
         }
       }
@@ -81,19 +81,15 @@ export default class RangeUtils {
 }
 
 function highlightRange(range) {
-    const newNode = document.createElement("div");
-    newNode.setAttribute(
-       "style",
-       "background-color: yellow; display: inline;"
-    );
-    range.surroundContents(newNode);
+  const newNode = document.createElement("div");
+  newNode.setAttribute("style", "background-color: yellow; display: inline;");
+  range.surroundContents(newNode);
 }
-
 
 export function highlightSelection() {
   const selection = window.getSelection();
   if (!selection.rangeCount) {
-  	return;
+    return;
   }
 
   const selectionRange = selection.getRangeAt(0);
