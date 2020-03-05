@@ -143,7 +143,7 @@ class NavigationView extends React.Component {
   }
 }
 
-class FileInport extends React.Component {
+class FileImport extends React.Component {
   render() {
     const { storyButton } = this.props.styles;
     return (
@@ -189,7 +189,7 @@ const App = () => {
         <Grid item xs={5}>
           <SideView styles={styles}>Hello World</SideView>
           <Grid container>
-            <FileInport styles={styles} />
+            <FileImport styles={styles} />
             <FileExport styles={styles} />
           </Grid>
         </Grid>
