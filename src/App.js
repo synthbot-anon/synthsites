@@ -1,45 +1,19 @@
 import React from "react";
-import { createMuiTheme, makeStyles } from "@material-ui/core/styles";
-import Button from "@material-ui/core/Button";
-import Paper from "@material-ui/core/Paper";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import { AppBar, IconButton, Toolbar, Box, Tabs, Tab } from "@material-ui/core";
+import {
+  AppBar,
+  Box,
+  Button,
+  Grid,
+  IconButton,
+  Paper,
+  Tab,
+  Tabs,
+  Toolbar,
+  Typography
+} from "@material-ui/core";
 import MenuIcon from "@material-ui/icons/Menu";
 import { highlightSelection } from "./utils/RangeUtils.js";
-
-const theme = createMuiTheme();
-
-const useStyles = makeStyles({
-  app: {
-    height: "calc(100vh - 16px)",
-    "max-height": "calc(100vh - 16px)"
-  },
-  main: {
-    "max-height": "calc(100vh - 64px)"
-  },
-  storyView: {
-    padding: theme.spacing(1),
-    textAlign: "left",
-    overflow: "auto",
-    height: "calc(100vh - 96px)",
-    "max-height": "calc(100vh - 96px)"
-  },
-  sideView: {
-    height: "calc(100vh - 152px)",
-    "max-height": "calc(100vh - 96px)",
-    padding: theme.spacing(1)
-  },
-  storyButton: {
-    background: theme.palette.primary.main,
-    color: theme.palette.primary.contrastText,
-    margin: theme.spacing(1)
-  },
-  title: {
-    flexGrow: 1
-  },
-  controlTab: {}
-});
+import { useStyles, theme } from "./theme.js";
 
 class StoryView extends React.Component {
   render() {
