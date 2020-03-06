@@ -22,15 +22,16 @@ import { useStyles, theme } from "./theme.js";
 /**
  * Panel used to display an HTML story.
  */
-class StoryPanel extends React.Component {
+class StorySheet extends React.Component {
   render() {
-    const { id, styles } = this.props;
-    const { storyPanel } = styles;
+    const { id, classes } = this.props;
 
     return (
-      <Paper id={id} className={storyPanel}>
-        Select a story
-      </Paper>
+      <div className={classes['c-story-panel__container']}>
+        <Paper id={id} className={classes['c-story-panel__paper']} >
+          Select a story
+        </Paper>
+      </div>
     );
   }
 }
@@ -51,7 +52,7 @@ const TabPanel = ({ children, value, index, ...other }) => (
  *   * Shortcuts -
  *   * Search -
  */
-class ControlsPanel extends React.Component {
+class ControlPanel extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -60,7 +61,7 @@ class ControlsPanel extends React.Component {
   }
 
   render() {
-    const { controlsPanel, controlTab } = this.props.styles;
+    const { controlTab } = this.props.classes;
     const value = this.state.selectedTab;
 
     const onChange = (event, newValue) => {
@@ -68,7 +69,7 @@ class ControlsPanel extends React.Component {
     };
 
     return (
-      <div className={controlsPanel}>
+      <div>
         <Toolbar>
           <Tabs value={value} onChange={onChange}>
             <Tab label="Labels" />
@@ -96,14 +97,13 @@ class ControlsPanel extends React.Component {
  */
 class NavigationBar extends React.Component {
   render() {
-    const { title } = this.props.styles;
     return (
       <AppBar position="static">
         <Toolbar>
           <IconButton edge="start" color="inherit" aria-label="menu">
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" className={title}>
+          <Typography variant="h6">
             Clipfics
           </Typography>
         </Toolbar>
@@ -113,36 +113,36 @@ class NavigationBar extends React.Component {
 }
 
 /**
- * Button to load a story file into the StoryPanel.
+ * Button to load a story file into the StorySheet.
  */
 class FileImport extends React.Component {
   render() {
-    const { storyButton } = this.props.styles;
+    const classes = this.props.classes;
 
     const loadStory = event => {
       const reader = new FileReader();
       reader.onload = e => {
         const html = e.target.result;
-        const container = document.getElementById("StoryPanel");
+        const container = document.getElementById("js-story-sheet");
         container.innerHTML = html;
       };
       reader.readAsText(event.target.files[0]);
     };
 
     return (
-      <div>
+      <span>
         <input
-          id="raised-button-file"
+          id="c-raised-button-file"
           type="file"
           style={{ display: "none" }}
           onChange={loadStory}
         />
-        <label htmlFor="raised-button-file">
-          <Button variant="contained" component="span" className={storyButton}>
-            New story
+        <label htmlFor="c-raised-button-file">
+          <Button variant="contained" component="span" className={classes['c-fileio-import-button']}>
+            Load story
           </Button>
         </label>
-      </div>
+      </span>
     );
   }
 }
@@ -154,10 +154,10 @@ class FileImport extends React.Component {
  */
 class FileExport extends React.Component {
   render() {
-    const { storyButton } = this.props.styles;
+    const classes = this.props.classes;
     return (
-      <Button className={storyButton} onClick={highlightSelection}>
-        Highlight
+      <Button className={classes['c-fileio-export-button']} onClick={highlightSelection}>
+        Export labels
       </Button>
     );
   }
@@ -167,21 +167,20 @@ class FileExport extends React.Component {
  * Main app.
  */
 const App = () => {
-  const styles = useStyles(theme);
-  const { app, main } = styles;
+  const classes = useStyles(theme);
 
   return (
-    <div id="app" className={app}>
-      <NavigationBar styles={styles} />
-      <Grid container className={main} spacing={2}>
-        <Grid item xs={7}>
-          <StoryPanel id="StoryPanel" styles={styles} />
+    <div id="app" className={classes['c-app--full-height']}>
+      <NavigationBar classes={classes} />
+      <Grid container spacing={2}>
+        <Grid item xs={7} className={classes['c-story-panel--full-height']} >
+          <StorySheet id="js-story-sheet" classes={classes} />
         </Grid>
-        <Grid item xs={5}>
-          <ControlsPanel styles={styles} />
+        <Grid item xs={5} className={classes['c-control-panel']} >
+          <ControlPanel classes={classes} />
           <Grid container>
-            <FileImport styles={styles} />
-            <FileExport styles={styles} />
+            <FileImport classes={classes} />
+            <FileExport classes={classes} />
           </Grid>
         </Grid>
       </Grid>
