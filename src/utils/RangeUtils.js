@@ -108,27 +108,3 @@ export default class RangeUtils {
     return false;
   }
 }
-
-/**
- * Highlights a Range object. The Range object MUST NOT span over multiple DOM nodes.
- */
-const highlightRange = range => {
-  const newNode = document.createElement("div");
-  newNode.setAttribute("style", "background-color: yellow; display: inline;");
-  range.surroundContents(newNode);
-};
-
-/**
- * Highlights the current selection, regardless of whether it spans over multiple DOM
- * elements.
- */
-export const highlightSelection = () => {
-  const selection = window.getSelection();
-  if (!selection.rangeCount) {
-    return;
-  }
-
-  const selectionRange = selection.getRangeAt(0);
-  const utils = new RangeUtils(selectionRange);
-  utils.apply(highlightRange);
-};
