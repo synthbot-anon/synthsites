@@ -2,7 +2,7 @@
  * Main entry point for the frontend.
  */
 
-import React, { useState, useEffect, createRef } from 'react';
+import React, { useState, useEffect, createRef, createContext, useContext } from 'react';
 import {
   AppBar,
   Box,
@@ -17,11 +17,12 @@ import {
 } from '@material-ui/core';
 import MenuIcon from '@material-ui/icons/Menu';
 import RangeUtils from './utils/RangeUtils.js';
-import StateMachine from './utils/StateMachine.js';
 import { useStyles, theme } from './theme.js';
 
-// Keep track of the current key combo for hotkey sequences.
-const hotkeyNavigator = new StateMachine();
+const hotkeys = {};
+
+const LabelTargetContext = createContext();
+
 
 // Highlights a Range object. The Range object MUST NOT span over multiple DOM nodes.
 const highlightRange = (range) => {
@@ -47,7 +48,9 @@ const highlightSelection = () => {
  * @param navigator StateMachine with which to register this hotkey
  * @param containerRef React ref for where a selection is valid
  */
-const useHotkeyHighlighter = (navigator, containerRef) => {
+const HotkeyHighlighter = (props) => {
+  const containerRef = useContext(LabelTargetContext);
+
   // Highlight selection only if it falls within the container
   const highlightWithinElement = () => {
     const selection = window.getSelection();
@@ -75,33 +78,15 @@ const useHotkeyHighlighter = (navigator, containerRef) => {
   };
 
   
-  useEffect(() => {
-    // Register highlighter with the hotkey navigator  
-    const transition = navigator.registerTransition(
-      navigator.start, // starting state
-      'h', // key trigger to transition states
-      navigator.start, // ending state (loop back)
-      highlightWithinElement, // callback on transition
-    );
-
-    // Unregister on unmount
-    return () => {
-      navigator.unregisterTransition(transition);
-    };
-  });
+  return (
+    <Hotkey shortcut="h" action={highlightWithinElement} description='h 🠖 [dialogue character="Twilight Sparkle"]' />
+  );
 };
 
 // Panel used to display an HTML story.
-const StorySheet = ({ classes, ...other }) => (
-  <Paper className={classes['c-story-panel__paper']} {...other} />
+const StorySheet = (props) => (
+  <Paper {...props} />
 );
-
-// Wrap an element to make it highlightable by hotkey
-const Highlightable = (props) => {
-  const containerRef = createRef();
-  useHotkeyHighlighter(hotkeyNavigator, containerRef);
-  return <div ref={containerRef} {...props} />;
-};
 
 /**
  * Stub class for displaying a tab panel. This is used for the Labels, Shortcuts,
@@ -113,46 +98,48 @@ const TabPanel = ({ children, value, index, ...other }) => (
   </Typography>
 );
 
-// Mock of what the Labels tab will look like.
-const LabelsPanel = () => {
+const Hotkey = ({ shortcut, action, description, ...other }) => {
+  useEffect(() => {
+    let previousActions = hotkeys[shortcut];
+    if (!previousActions) {
+      previousActions = [];
+      hotkeys[shortcut] = previousActions;
+    }
+
+    previousActions.push(action);
+
+    return () => {
+      hotkeys[shortcut] = hotkeys[shortcut].filter((x) => x !== action);
+    }
+  });
+
   return (
-    <Grid container>
-      <Grid item xs={6}>
-        <Typography>
-          [ d ] dialogue <br />
-          ├── character <br />
-          ├──── ? <br />
-          └── next quote
-          <br />
-          <br />
-          [ i ] dialogue <br />
-          ├── style <br />
-          ├──── internal monologue <br />
-          ├── character <br />
-          ├──── ? <br />
-          └── next quote or italicized
-          <br />
-          <br />
-          [ t ] dialogue <br />
-          ├── character <br />
-          ├──── Twilight Sparkle <br />
-          └── next quote
-          <br />
-          <br />
-          [ n ] emotion <br />
-          ├──── neutral <br />
-          └── next sentence
-          <br />
-          <br />
-          [ ↵ ] ? <br />
-          ├── ... <br />
-          <br />
-          [ q ] next quote <br />
-        </Typography>
+    <Paper {...other}>
+      {description}
+    </Paper>
+  );
+};
+
+const CreateNewHotkey = (props) => {
+  return (
+    <Paper {...props} onClick={() => console.log("hello world")}>
+      + Add hotkey
+    </Paper>
+  );
+}
+
+// Mock of what the Labels tab will look like.
+const LabelsPanel = ({ containerRef, ...other }) => {
+  return (
+    <Grid container {...other}>
+      <Grid item>
+        <HotkeyHighlighter containerRef={containerRef} />
+        <CreateNewHotkey />
       </Grid>
     </Grid>
   );
 };
+
 
 /**
  * Panel used to display control options. This panel contains three tabs:
@@ -254,9 +241,10 @@ const FileExport = ({ classes }) => {
 };
 
 // React effect to use hotkeys on a page
-const useNavigator = (navigator) => {
+const useHotkeys = (hotkeys) => {
   const keyPressListener = (e) => {
-    navigator.transition(e.key);
+    const actions = hotkeys[e.key] || [];
+    actions.forEach((f) => f());
   };
 
   useEffect(() => {
@@ -275,29 +263,34 @@ const App = () => {
 
   const [storyContents, setStoryContents] = useState('Select a story');
   const FileImportButton = createFileImportButton(setStoryContents);
-  useNavigator(hotkeyNavigator);
+  const labelTargetRef = createRef();
+  useHotkeys(hotkeys);
+
+  // TODO: sanitize html before displaying it
 
   return (
     <div id="app" className={classes['c-app--full-height']}>
       <NavigationBar classes={classes} />
-      <Grid container spacing={2}>
-        <Grid item xs={7} className={classes['c-story-panel--full-height']}>
-          <Highlightable className={classes['c-story-panel__container']}>
-            <StorySheet
-              id="js-story-sheet"
-              classes={classes}
-              dangerouslySetInnerHTML={{ __html: storyContents }}
-            />
-          </Highlightable>
-        </Grid>
-        <Grid item xs={5} className={classes['c-control-panel']}>
-          <ControlPanel classes={classes} />
-          <Grid container>
-            <FileImportButton classes={classes} />
-            <FileExport classes={classes} />
+      <LabelTargetContext.Provider value={labelTargetRef}>
+        <Grid container spacing={2}>
+          <Grid item xs={7} className={classes['c-story-panel--full-height']}>
+            <div ref={labelTargetRef} className={classes["c-story-panel__container"]}>
+              <StorySheet
+                id="js-story-sheet"
+                className={classes["c-story-panel__paper"]}
+                dangerouslySetInnerHTML={{ __html: storyContents }}
+              />
+            </div>
+          </Grid>
+          <Grid item xs={5} className={classes['c-control-panel']}>
+            <ControlPanel classes={classes} />
+            <Grid container>
+              <FileImportButton classes={classes} />
+              <FileExport classes={classes} />
+            </Grid>
           </Grid>
         </Grid>
-      </Grid>
+      </LabelTargetContext.Provider>
     </div>
   );
 };
