@@ -1,0 +1,61 @@
+import { useEffect, useState } from 'react';
+
+export default class ContainerSelection {
+  #containerRef;
+
+  constructor(containerRef) {
+    this.#containerRef = containerRef;
+  }
+
+  useRange() {
+    const [range, setRange] = useState(this.getRange());
+
+    useEffect(() => {
+      document.addEventListener('selectionchange', () => {
+        setRange(this.getRange());
+      });
+    });
+
+    return range;
+  }
+
+  setRange(range) {
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  getRange() {
+    const selection = window.getSelection();
+    if (!selection.rangeCount) {
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    if (isRangeWithin(range, this.#containerRef.current)) {
+      return range;
+    }
+
+    return null;
+  }
+
+}
+
+const isRangeWithin = (selectionRange, container) => {
+  if (!selectionRange || !container) {
+    return false;
+  }
+
+  const startNode = selectionRange.startContainer;
+  const endNode = selectionRange.endContainer;
+
+  if (!container.contains(startNode)) {
+    return false;
+  }
+
+  if (!container.contains(endNode)) {
+    return false;
+  }
+
+  return true;
+};

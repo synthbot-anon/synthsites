@@ -2,67 +2,50 @@
  * Main entry point for the frontend.
  */
 
-import React, { useState, useEffect, createRef, useContext } from 'react';
+import React, { useState, createRef, useContext } from 'react';
 import {
   AppBar,
   Box,
   Button,
   Grid,
   IconButton,
-  Paper,
   Tab,
   Tabs,
   Toolbar,
   Typography,
 } from '@material-ui/core';
 import MenuIcon from '@material-ui/icons/Menu';
-import sanitizeHtml from 'sanitize-html';
 import { ThemeContext, useStyles, theme } from './theme.js';
 import { ClipficsContext } from './tasks.js';
+import Hotkeys from './utils/Hotkeys.js';
 import { ClipficsLabelsPanel } from './clipfics/LabelsPanel.js';
+import RangeUtils from './utils/RangeUtils.js';
+import HtmlPaper from './utils/HtmlPaper.js';
+import ContainerSelection from './utils/ContainerSelection.js';
+import FileImportButton from './utils/FileImportButton.js';
 
-const IGNORE_KEYS = new Set(['Shift', 'Control', 'Alt', 'CapsLock']);
-
-// React effect to use hotkeys on a page
-const useHotkeys = (hotkeys) => {
-  const keyDownListener = (e) => {
-    if (IGNORE_KEYS.has(e.key)) {
-      return;
-    }
-
-    if (hotkeys['all'] && hotkeys['all'].length !== 0) {
-      e.preventDefault();
-      const actions = hotkeys['all'];
-      actions.forEach((f) => f(e.key));
-      return;
-    }
-
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      const actions = hotkeys['Escape'] || [];
-      actions.forEach((f) => f(e.key));
-      return;
-    }
-
-    if (document.activeElement.tagName.toLowerCase() === 'input') {
-      return;
-    }
-
-    e.preventDefault();
-    const actions = hotkeys[e.key] || [];
-    actions.forEach((f) => f(e.key));
-  };
-
-  useEffect(() => {
-    document.addEventListener('keydown', keyDownListener);
-    return () => {
-      document.removeEventListener('keydown', keyDownListener);
-    };
-  });
+// Highlights a Range object. The Range object MUST NOT span over multiple DOM nodes.
+const highlightSimpleRange = (label, range) => {
+  const newNode = document.createElement('div');
+  newNode.setAttribute('style', 'background-color: yellow; display: inline;');
+  newNode.setAttribute('class', `${label} highlight`);
+  range.surroundContents(newNode);
 };
 
-// Panel used to display an HTML story.
-const StorySheet = (props) => <Paper {...props} />;
+const addLabelToRange = (label, range) => {
+  const utils = new RangeUtils(range);
+
+  const startIndicator = document.createElement('span');
+  startIndicator.setAttribute('class', `${label} start`);
+  utils.prepend(startIndicator);
+
+  const endIndicator = document.createElement('span');
+  endIndicator.setAttribute('class', `${label} end`);
+  utils.append(endIndicator);
+
+  // Highlight the selection
+  utils.apply((range) => highlightSimpleRange(label, range));
+};
 
 /**
  * Stub class for displaying a tab panel. This is used for the Labels, Shortcuts,
@@ -92,12 +75,11 @@ const ClipficsControlPanel = () => {
       <Toolbar>
         <Tabs value={selectedTab} onChange={onTabSelected}>
           <Tab label="Labels" />
-          <Tab label="Shortcuts" />
-          <Tab label="Search" />
+          <Tab label="Files" />
         </Tabs>
       </Toolbar>
       <TabPanel className={classes.controlTab} value={selectedTab} index={0}>
-        <ClipficsLabelsPanel />
+        <ClipficsLabelsPanel onLabel={addLabelToRange} />
       </TabPanel>
       <TabPanel className={classes.controlTab} value={selectedTab} index={1}>
         Item two
@@ -126,100 +108,6 @@ const NavigationBar = () => {
   );
 };
 
-const sanitizeFimfic = (html) => {
-  // default options plus h1, h2, and hr
-  return sanitizeHtml(html, {
-    allowedTags: [
-      'h1',
-      'h2',
-      'h3',
-      'h4',
-      'h5',
-      'h6',
-      'hr',
-      'blockquote',
-      'p',
-      'a',
-      'ul',
-      'ol',
-      'nl',
-      'li',
-      'b',
-      'i',
-      'strong',
-      'em',
-      'strike',
-      'code',
-      'hr',
-      'br',
-      'div',
-      'table',
-      'thead',
-      'caption',
-      'tbody',
-      'tr',
-      'th',
-      'td',
-      'pre',
-      'iframe',
-    ],
-    disallowedTagsMode: 'discard',
-    allowedAttributes: {
-      a: ['href', 'name', 'target'],
-      img: ['src'],
-    },
-    selfClosing: [
-      'img',
-      'br',
-      'hr',
-      'area',
-      'base',
-      'basefont',
-      'input',
-      'link',
-      'meta',
-    ],
-    allowedSchemes: ['http', 'https', 'ftp', 'mailto'],
-    allowedSchemesByTag: {},
-    allowedSchemesAppliedToAttributes: ['href', 'src', 'cite'],
-    allowProtocolRelative: true,
-  });
-};
-
-/**
- * Button to load a story file into the StorySheet.
- */
-const createFileImportButton = (setFileContents) => {
-  const handleFileSelected = (event) => {
-    const reader = new FileReader();
-    reader.onload = (e) => setFileContents(e.target.result);
-    reader.readAsText(event.target.files[0]);
-  };
-
-  return () => {
-    const { classes } = useContext(ThemeContext);
-    return (
-      <span>
-        <input
-          id="c-raised-button-file"
-          type="file"
-          style={{ display: 'none' }}
-          onChange={handleFileSelected}
-        />
-        <label htmlFor="c-raised-button-file">
-          <Button
-            variant="contained"
-            component="span"
-            className={classes['c-fileio-import-button']}
-          >
-            Load story
-          </Button>
-        </label>
-      </span>
-    );
-  };
-};
-
 /**
  * Button to export a labeled story file, which is not what it does at the moment.
  * This currently highlights the selected text. Note that this will highlight ANY
@@ -235,21 +123,17 @@ const FileExport = () => {
  */
 const App = () => {
   const [storyContents, setStoryContents] = useState('Load a story');
-  const FileImportButton = createFileImportButton(setStoryContents);
 
   const themeContext = {
     classes: useStyles(theme),
   };
   const classes = themeContext.classes;
 
-  const taskContext = {
-    hotkeys: {},
-    storyContainerRef: createRef(),
-  };
-
-  useHotkeys(taskContext.hotkeys);
-
-  // TODO: sanitize html before displaying it
+  const taskContext = {};
+  taskContext.hotkeys = new Hotkeys();
+  taskContext.hotkeys.useHotkeys();
+  taskContext.storyContainerRef = createRef();
+  taskContext.selection = new ContainerSelection(taskContext.storyContainerRef);
 
   return (
     <ThemeContext.Provider value={themeContext}>
@@ -261,11 +145,12 @@ const App = () => {
               ref={taskContext.storyContainerRef}
               className={classes['c-story-panel__container']}
             >
-              <StorySheet
+              <HtmlPaper
                 id="js-story-sheet"
                 className={classes['c-story-panel__paper']}
-                dangerouslySetInnerHTML={{ __html: sanitizeFimfic(storyContents) }}
-              />
+              >
+                {storyContents}
+              </HtmlPaper>
             </div>
           </Grid>
           <Grid item xs={5} className={classes['c-control-panel']}>
@@ -273,7 +158,7 @@ const App = () => {
               <ClipficsControlPanel />
             </ClipficsContext.Provider>
             <Grid container>
-              <FileImportButton />
+              <FileImportButton onFileLoaded={setStoryContents} />
               <FileExport />
             </Grid>
           </Grid>

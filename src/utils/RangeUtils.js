@@ -10,6 +10,8 @@ export default class RangeUtils {
   #startOffset;
   #endNode;
   #endOffset;
+  #startingPoint;
+  #endingPoint;
   #startRange;
 
   /**
@@ -21,6 +23,10 @@ export default class RangeUtils {
     this.#endNode = endContainer;
     this.#endOffset = endOffset;
 
+    this.#endingPoint = new Range();
+    this.#endingPoint.setStart(endContainer, endOffset);
+    this.#endingPoint.setEnd(endContainer, endOffset);
+
     this.#startRange = new Range();
     this.#startRange.setStart(startContainer, startOffset);
     if (startContainer === endContainer) {
@@ -28,6 +34,14 @@ export default class RangeUtils {
     } else {
       this.#startRange.setEndAfter(startContainer);
     }
+  }
+
+  prepend(node) {
+    this.#startRange.insertNode(node);
+  }
+
+  append(node) {
+    this.#endingPoint.insertNode(node);
   }
 
   /**

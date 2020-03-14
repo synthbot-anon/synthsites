@@ -1,72 +1,27 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { Grid, Modal, Paper, TextField, Typography } from '@material-ui/core';
-import RangeUtils from '../utils/RangeUtils.js';
+import React, { useState, useContext } from 'react';
+import { Grid, Modal } from '@material-ui/core';
 import { ThemeContext } from '../theme.js';
 import { ClipficsContext } from '../tasks.js';
-
-// Highlights a Range object. The Range object MUST NOT span over multiple DOM nodes.
-const highlightSimpleRange = (range) => {
-  const newNode = document.createElement('div');
-  newNode.setAttribute('style', 'background-color: yellow; display: inline;');
-  range.surroundContents(newNode);
-};
-
-const getWindowSelection = () => {
-  const selection = window.getSelection();
-  if (!selection.rangeCount) {
-    return;
-  }
-
-  return selection.getRangeAt(0);
-};
-
-const setWindowSelection = (range) => {
-  const selection = window.getSelection();
-  selection.removeAllRanges();
-  selection.addRange(range);
-};
-
-const isSelectionWithin = (selectionRange, container) => {
-  if (!selectionRange) {
-    return false;
-  }
-
-  const startNode = selectionRange.startContainer;
-  const endNode = selectionRange.endContainer;
-
-  if (!container.contains(startNode)) {
-    return false;
-  }
-
-  if (!container.contains(endNode)) {
-    return false;
-  }
-
-  return true;
-};
+import CompletableTextField from '../utils/CompletableTextField.js';
 
 /**
  * React effect to highlight text by hotkey.
  * @param navigator StateMachine with which to register this hotkey
  * @param containerRef React ref for where a selection is valid
  */
-const HotkeyHighlighter = ({ shortcut, description }) => {
-  const { storyContainerRef } = useContext(ClipficsContext);
+const HotkeyHighlighter = ({ onLabel, shortcut, description }) => {
+  const { hotkeys, selection } = useContext(ClipficsContext);
 
   // Highlight selection only if it falls within the container
   const highlightWithinElement = () => {
-    const selectionRange = getWindowSelection();
-    if (!isSelectionWithin(selectionRange, storyContainerRef.current)) {
-      return;
+    const selectionRange = selection.getRange();
+    if (selectionRange) {
+      onLabel(description, selectionRange);
     }
-
-    // Highlight the selection
-    const utils = new RangeUtils(selectionRange);
-    utils.apply(highlightSimpleRange);
   };
 
   return (
-    <Hotkey
+    <hotkeys.Hotkey
       shortcut={shortcut}
       action={highlightWithinElement}
       description={description}
@@ -74,97 +29,38 @@ const HotkeyHighlighter = ({ shortcut, description }) => {
   );
 };
 
-const registerHotkey = (hotkeys, shortcut, action) => {
-  let previousActions = hotkeys[shortcut];
-  if (!previousActions) {
-    previousActions = [];
-    hotkeys[shortcut] = previousActions;
-  }
-
-  previousActions.push(action);
-};
-
-const unregisterHotkey = (hotkeys, shortcut, action) => {
-  hotkeys[shortcut] = hotkeys[shortcut].filter((x) => x !== action);
-};
-
-const Hotkey = ({ shortcut, action, description, ...other }) => {
-  const { classes } = useContext(ThemeContext);
-  const { hotkeys } = useContext(ClipficsContext);
-
-  useEffect(() => {
-    registerHotkey(hotkeys, shortcut, action);
-    return () => {
-      unregisterHotkey(hotkeys, shortcut, action);
-    };
-  });
-
-  return (
-    <Paper className={classes['c-hotkey__paper']} {...other}>
-      {`${shortcut} 🠖 ${description}`}
-    </Paper>
-  );
-};
-
-const CompletableTextField = ({ onComplete, ...other }) => {
-  const [text, setText] = useState('');
-
-  const onSubmitted = (e) => {
-    e.preventDefault();
-    onComplete(text);
-    setText('');
-  };
-
-  return (
-    <form onSubmit={onSubmitted}>
-      <TextField {...other} value={text} onChange={(e) => setText(e.target.value)} />
-    </form>
-  );
-};
-
-const CreateNewHotkey = ({ onComplete, ...other }) => {
-  const { classes } = useContext(ThemeContext);
-
-  return (
-    <CompletableTextField
-      label="Add hotkey"
-      className={`${classes['c-controls--fill-width']} ${classes['c-controls__textfield']}`}
-      onComplete={onComplete}
-    />
-  );
-};
-
-const CustomLabelHotkey = (props) => {
-  const { storyContainerRef } = useContext(ClipficsContext);
+const CustomLabelHotkey = ({ onLabel, ...other }) => {
+  const { hotkeys, selection } = useContext(ClipficsContext);
   const { classes } = useContext(ThemeContext);
 
   const [showLabelModal, setShowLabelModal] = useState(false);
-  const [selectionRange, setSelectionRange] = useState(null);
+  const [savedRange, setSavedRange] = useState(null);
 
   const openLabelDialog = () => {
-    const sel = getWindowSelection();
-    if (!isSelectionWithin(sel, storyContainerRef.current)) {
+    const selectionRange = selection.getRange();
+
+    if (!selectionRange) {
       return;
     }
 
-    setSelectionRange(getWindowSelection(sel));
+    setSavedRange(selectionRange);
     setShowLabelModal(true);
   };
 
   const escapeLabelDialog = () => {
-    console.log(selectionRange);
     setShowLabelModal(false);
-    setWindowSelection(selectionRange);
+    selection.setRange(savedRange);
   };
 
   const finishLabelDialog = (text) => {
     setShowLabelModal(false);
-    setWindowSelection(selectionRange);
+    selection.setRange(savedRange);
+    onLabel(text, savedRange);
   };
 
   return (
     <div>
-      <Hotkey
+      <hotkeys.Hotkey
         shortcut="Enter"
         action={openLabelDialog}
         description="create custom label"
@@ -183,77 +79,38 @@ const CustomLabelHotkey = (props) => {
   );
 };
 
-const CaptureHotkey = ({ description, onCapture, ...other }) => {
+export const ClipficsLabelsPanel = ({ onLabel, ...other }) => {
   const { classes } = useContext(ThemeContext);
   const { hotkeys } = useContext(ClipficsContext);
 
-  useEffect(() => {
-    const onCaptureHotkey = (key) => {
-      onCapture(key, description);
-    };
+  const [displayKeys, setDisplayKeys] = useState([
+    <HotkeyHighlighter
+      key="h -> highlight selection"
+      onLabel={onLabel}
+      shortcut="q"
+      description="highlight selection"
+    />,
+  ]);
 
-    registerHotkey(hotkeys, 'all', onCaptureHotkey);
-
-    return () => {
-      unregisterHotkey(hotkeys, 'all', onCaptureHotkey);
-    };
-  });
-
-  return (
-    <Grid
-      container
-      alignItems="center"
-      justify="center"
-      className={classes['c-request-hotkey__paper']}
-      {...other}
-    >
-      <Typography display="inline" className={classes['c-request-hotkey__request']}>
-        Select a hotkey
-      </Typography>
-      <Typography
-        display="inline"
-        className={classes['c-request-hotkey__description']}
-      >
-        {` ${description}`}
-      </Typography>
-    </Grid>
-  );
-};
-
-// Mock of what the Labels tab will look like.
-export const ClipficsLabelsPanel = (props) => {
-  const { classes } = useContext(ThemeContext);
-  const [hotkeys, setHotkeys] = useState([]);
-  const [pendingLabel, setPendingLabel] = useState();
-  const [captureHotkey, setCaptureHotkey] = useState(false);
-
-  const requestHotkeyFor = (label) => {
-    setPendingLabel(label);
-    setCaptureHotkey(true);
-  };
-
-  const onHotkeyCaptured = (hotkey, label) => {
-    const key = `${hotkey} -> ${label}`;
-    hotkeys.push(
-      <HotkeyHighlighter key={key} shortcut={hotkey} description={label} />,
+  const onHotkeyAdded = (shortcut, label) => {
+    const newHotkey = (
+      <HotkeyHighlighter
+        key={`${shortcut} -> ${label}`}
+        onLabel={onLabel}
+        shortcut={shortcut}
+        description={label}
+      />
     );
 
-    setHotkeys(hotkeys);
-    setCaptureHotkey(false);
+    setDisplayKeys([newHotkey, ...displayKeys]);
   };
 
   return (
-    <Grid container {...props}>
+    <Grid container {...other}>
       <Grid item className={classes['c-controls--fill-width']}>
-        <Modal open={captureHotkey}>
-          <div>
-            <CaptureHotkey description={pendingLabel} onCapture={onHotkeyCaptured} />}
-          </div>
-        </Modal>
-        <div children={hotkeys} />
-        <HotkeyHighlighter shortcut="h" description="highlight selection" />
-        <CustomLabelHotkey />
-        <CreateNewHotkey onComplete={requestHotkeyFor} />
+        <div children={displayKeys} />
+        <CustomLabelHotkey onLabel={onLabel} />
+        <hotkeys.CreateNewHotkey onHotkeyAdded={onHotkeyAdded} />
       </Grid>
     </Grid>
   );

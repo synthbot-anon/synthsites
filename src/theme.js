@@ -47,6 +47,7 @@ export const useStyles = makeStyles({
 
   'c-controls__textfield': {
     'margin-top': theme.spacing(2),
+    'margin-bottom': theme.spacing(2),
   },
 
   'c-hotkey__paper': {
