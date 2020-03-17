@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import CompletableTextField from '../utils/CompletableTextField.js';
+import CompletableTextField from '../common/CompletableTextField.js';
 import { ThemeContext } from '../theme.js';
 import { Paper, Grid, Modal, Typography } from '@material-ui/core';
 
