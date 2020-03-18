@@ -38,7 +38,6 @@ export default class ContainerSelection {
 
     return null;
   }
-
 }
 
 const isRangeWithin = (selectionRange, container) => {
@@ -59,3 +58,21 @@ const isRangeWithin = (selectionRange, container) => {
 
   return true;
 };
+
+export const useSelectionCache = (selection) => {
+  let [savedRange, setSavedRange] = useState(null);
+
+  const saveSelection = () => {
+    setSavedRange(savedRange = selection.getRange());
+  }
+
+  const restoreSelection = () => {
+    if (savedRange === null) {
+      return;
+    }
+
+    selection.setRange(savedRange);
+  }
+
+  return { saveSelection, restoreSelection };
+}
