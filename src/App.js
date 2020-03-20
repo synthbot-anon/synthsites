@@ -46,7 +46,20 @@ const NavigationBar = () => {
  */
 const FileExport = () => {
   const { classes } = useContext(ThemeContext);
-  return <Button className={classes['c-fileio-export-button']}>Export labels</Button>;
+
+  const download = () => {
+    const storyData = document.getElementById('js-story-sheet').innerHTML;
+    const storyBlob = new Blob([storyData], {
+      'type': 'text/html'
+    });
+
+    const a = document.createElement('a');
+    a.setAttribute('href', window.URL.createObjectURL(storyBlob));
+    a.download = "story.cookiesynth.html";
+    a.click();
+
+  };
+  return <Button className={classes['c-fileio-export-button']} onClick={download}>Export labels</Button>;
 };
 
 /**

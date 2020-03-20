@@ -42,10 +42,6 @@ export default () => {
         <ClipficsLabelsPanel />
       </TabPanel>
       <TabPanel className={classes.controlTab} value={selectedTab} index={1}>
-        Item two
-      </TabPanel>
-      <TabPanel className={classes.controlTab} value={selectedTab} index={2}>
-        Item three
       </TabPanel>
     </div>
   );

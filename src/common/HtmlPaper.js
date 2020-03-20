@@ -30,6 +30,7 @@ const customSanitizeHtml = (html) => {
       'i',
       'strong',
       'em',
+      'span',
       'strike',
       'code',
       'hr',
@@ -49,6 +50,7 @@ const customSanitizeHtml = (html) => {
     allowedAttributes: {
       a: ['href', 'name', 'target'],
       img: ['src'],
+      span: ['data-cookiesynth', 'style'],
     },
     selfClosing: [
       'img',

@@ -58,8 +58,8 @@ export default class CookieSynthLabel {
 
 // Highlights a Range object. The Range object MUST NOT span over multiple DOM nodes.
 const highlightSimpleRange = (range) => {
-  const newNode = document.createElement('div');
-  newNode.setAttribute('style', 'background-color: yellow; display: inline;');
+  const newNode = document.createElement('span');
+  newNode.setAttribute('style', 'background-color: yellow;');
   newNode.setAttribute('class', 'highlight');
   range.surroundContents(newNode);
 };
