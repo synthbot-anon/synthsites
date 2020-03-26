@@ -5,7 +5,16 @@ import sanitizeHtml from 'sanitize-html';
 // Panel used to display an HTML story.
 export default ({ children, ...other }) => {
   const sanitizedHtml = customSanitizeHtml(children);
-  return <Paper {...other} dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />;
+
+  const div = document.createElement('div');
+  div.innerHTML = sanitizedHtml;
+
+  const labels = div.querySelectorAll('[data-cookiesynth-style]');
+  labels.forEach((e) => {
+    e.setAttribute('style', 'background-color: yellow;');
+  });
+
+  return <Paper {...other} dangerouslySetInnerHTML={{ __html: div.innerHTML }} />;
 };
 
 const customSanitizeHtml = (html) => {
@@ -50,7 +59,7 @@ const customSanitizeHtml = (html) => {
     allowedAttributes: {
       a: ['href', 'name', 'target'],
       img: ['src'],
-      span: ['data-cookiesynth', 'style'],
+      span: ['data-cookiesynth', 'data-cookiesynth-style'],
     },
     selfClosing: [
       'img',

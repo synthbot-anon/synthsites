@@ -17,10 +17,11 @@ import MenuIcon from '@material-ui/icons/Menu';
 import { ThemeContext, useStyles, theme } from './theme.js';
 import { ClipficsContext } from './tasks.js';
 import Hotkeys from './common/Hotkeys.js';
-import HtmlPaper from './common/HtmlPaper.js';
 import ContainerSelection from './common/ContainerSelection.js';
 import FileImportButton from './common/FileImportButton.js';
 import ClipficsControlPanel from './clipfics/ClipficsControlPanel.js';
+
+import CookieSynthPaper from './clipfics/cookiesynth/CookieSynthPaper.js';
 
 /**
  * Navigation bar at the top of the site. This doesn't serve any functiona purpose at
@@ -44,7 +45,7 @@ const NavigationBar = () => {
  * This currently highlights the selected text. Note that this will highlight ANY
  * text selected on the page, not just story text.
  */
-const FileExport = () => {
+const CookieSynthExport = () => {
   const { classes } = useContext(ThemeContext);
 
   const download = () => {
@@ -55,7 +56,7 @@ const FileExport = () => {
 
     const a = document.createElement('a');
     a.setAttribute('href', window.URL.createObjectURL(storyBlob));
-    a.download = "story.cookiesynth.html";
+    a.download = "cookiesynth - story.html";
     a.click();
 
   };
@@ -89,12 +90,12 @@ const App = () => {
               ref={taskContext.storyContainerRef}
               className={classes['c-story-panel__container']}
             >
-              <HtmlPaper
+              <CookieSynthPaper
                 id="js-story-sheet"
                 className={classes['c-story-panel__paper']}
               >
                 {storyContents}
-              </HtmlPaper>
+              </CookieSynthPaper>
             </div>
           </Grid>
           <Grid item xs={5} className={classes['c-control-panel']}>
@@ -103,7 +104,7 @@ const App = () => {
             </ClipficsContext.Provider>
             <Grid container>
               <FileImportButton onFileLoaded={setStoryContents} />
-              <FileExport />
+              <CookieSynthExport />
             </Grid>
           </Grid>
         </Grid>

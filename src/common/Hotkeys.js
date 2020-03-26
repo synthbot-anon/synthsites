@@ -5,6 +5,15 @@ import { Paper, Grid, Modal, Typography } from '@material-ui/core';
 
 const IGNORE_KEYS = new Set(['Shift', 'Control', 'Alt', 'CapsLock']);
 
+const executeActions = (actions, e) => {
+  if (actions.length === 0) {
+    return;
+  }
+
+  e.preventDefault();
+  actions.forEach((f) => f(e.key));
+}
+
 export default class Hotkeys {
   #hotkeys = {};
   CaptureShortcut;
@@ -25,16 +34,14 @@ export default class Hotkeys {
       }
 
       if (this.#hotkeys['all'] && this.#hotkeys['all'].length !== 0) {
-        e.preventDefault();
         const actions = this.#hotkeys['all'];
-        actions.forEach((f) => f(e.key));
+        executeActions(actions, e);
         return;
       }
 
       if (e.key === 'Escape') {
-        e.preventDefault();
         const actions = this.#hotkeys['Escape'] || [];
-        actions.forEach((f) => f(e.key));
+        executeActions(actions, e);
         return;
       }
 
@@ -42,9 +49,9 @@ export default class Hotkeys {
         return;
       }
 
-      e.preventDefault();
       const actions = this.#hotkeys[e.key] || [];
-      actions.forEach((f) => f(e.key));
+      executeActions(actions, e);
+      return;
     };
 
     useEffect(() => {

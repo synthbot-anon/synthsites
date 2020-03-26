@@ -1,4 +1,5 @@
-import RangeUtils from '../common/RangeUtils.js';
+import { isLabelValid, getTagsFromLabel, getMissingValues } from './common.js';
+import RangeUtils from '../../common/RangeUtils.js';
 
 export default class CookieSynthLabel {
   missingProperties = [];
@@ -8,7 +9,7 @@ export default class CookieSynthLabel {
   #range;
 
   constructor(range, label) {
-    const missingValueMatches = label.matchAll(MISSING_VALUES_REGEX);
+    const missingValueMatches = getMissingValues(label);
 
     for (let item of missingValueMatches) {
       const context = item[1];
@@ -60,6 +61,7 @@ export default class CookieSynthLabel {
 const highlightSimpleRange = (range) => {
   const newNode = document.createElement('span');
   newNode.setAttribute('style', 'background-color: yellow;');
+  newNode.setAttribute('data-cookiesynth-style', 'highlight');
   newNode.setAttribute('class', 'highlight');
   range.surroundContents(newNode);
 };
@@ -79,27 +81,4 @@ const addLabelToRange = (tagStart, tagEnd, range) => {
 
   // Highlight the selection
   utils.apply((range) => highlightSimpleRange(range));
-};
-
-const KEYWORD = '[a-zA-Z][a-zA-Z0-9]*';
-const VALUE = '"(?:[^"]*|\\?)"';
-const SEGTYPE = `${KEYWORD}`;
-const OPEN_REGEX = new RegExp(
-  `^\\s*(${KEYWORD})(?:\\s*=\\s*${VALUE}|(?:\\s+${SEGTYPE}\\s*=\\s*${VALUE})*)\\s*$`,
-);
-const MISSING_VALUES_REGEX = new RegExp(`(${KEYWORD})\\s*=\\s*"(\\?)"`, 'g');
-
-const isLabelValid = (label) => {
-  const result = OPEN_REGEX.test(label);
-  return result;
-};
-
-const getTagsFromLabel = (label) => {
-  const match = OPEN_REGEX.exec(label);
-  const [full, keyword] = match;
-
-  const tagStart = `[${full}]`;
-  const tagEnd = keyword === 'meta' ? null : `[/${keyword}]`;
-
-  return [tagStart, tagEnd];
 };

@@ -3,12 +3,11 @@ import { Grid } from '@material-ui/core';
 
 import { ThemeContext } from '../theme.js';
 import { ClipficsContext } from '../tasks.js';
-import RangeUtils from '../common/RangeUtils.js';
 import TextFieldModal from '../common/TextFieldModal.js';
 import { useSelectionCache } from '../common/ContainerSelection.js';
 import useModalControls from '../common/useModalControls.js';
 import useLoopControls from '../common/useLoopControls.js';
-import CookieSynthLabel from './CookieSynthLabel.js';
+import CookieSynthLabel from './cookiesynth/CookieSynthLabel.js';
 
 /**
  * React effect to highlight text by hotkey.
