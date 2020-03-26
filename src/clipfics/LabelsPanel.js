@@ -15,13 +15,15 @@ import CookieSynthLabel from './cookiesynth/CookieSynthLabel.js';
  * @param containerRef React ref for where a selection is valid
  */
 const ClipficsHotkey = ({ onLabel, shortcut, description }) => {
-  const { hotkeys, selection } = useClipfics();
+  const { hotkeys, selection, terminal } = useClipfics();
 
   // Highlight selection only if it falls within the container
   const highlightWithinElement = () => {
     const selectionRange = selection.getRange();
     if (selectionRange) {
       onLabel(description);
+    } else {
+      terminal.log("you need to select text in the story first");
     }
   };
 
