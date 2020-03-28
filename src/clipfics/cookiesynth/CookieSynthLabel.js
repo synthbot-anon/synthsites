@@ -1,5 +1,5 @@
 import { isLabelValid, getTagsFromLabel, getMissingValues } from './common.js';
-import RangeUtils from '../../common/RangeUtils.js';
+import RangeUtils from 'common/RangeUtils.js';
 
 export default class CookieSynthLabel {
   missingProperties = [];
@@ -7,6 +7,7 @@ export default class CookieSynthLabel {
   providedValues = [];
   #label;
   #range;
+  completedLabel;
 
   constructor(range, label) {
     const missingValueMatches = getMissingValues(label);
@@ -40,6 +41,7 @@ export default class CookieSynthLabel {
     }
     result += originalLabel.substring(lastOffset, originalLabel.length);
 
+    this.completedLabel = result;
     return result;
   }
 
@@ -47,13 +49,12 @@ export default class CookieSynthLabel {
     const completedLabel = this.getCompletedLabel();
 
     if (!isLabelValid(completedLabel)) {
-      console.log('invalid label:', completedLabel);
-      return;
+      return false;
     }
 
     const [tagStart, tagEnd] = getTagsFromLabel(completedLabel);
-    console.log('tags:', tagStart, tagEnd);
     addLabelToRange(tagStart, tagEnd, this.#range);
+    return true;
   }
 }
 

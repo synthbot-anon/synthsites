@@ -14,7 +14,8 @@ export const useStyles = makeStyles({
   },
 
   'c-story-panel--full-height': {
-    'max-height': 'calc(100vh - 64px)',
+    'max-height': 'calc(85vh - 64px)',
+    'height': 'calc(85vh - 64px)',
   },
 
   'c-control-panel': {},
@@ -87,5 +88,20 @@ export const useStyles = makeStyles({
     transform: 'translate(-50%, -50%)',
     background: 'white',
     padding: theme.spacing(2),
+  },
+
+  'c-terminal': {
+    'padding-top': theme.spacing(2),
+    'padding-bottom': theme.spacing(2),
+    'padding-left': theme.spacing(1),
+    'padding-right': theme.spacing(1),
+    'max-height': 'calc(15vh - 32px)',
+    'height': 'calc(15vh - 32px)',
+    'overflow': 'auto',
+  },
+
+  'c-terminal__history': {
+    'font-family': "'Inconsolata', monospace",
+    'line-height': 1.0,
   },
 });

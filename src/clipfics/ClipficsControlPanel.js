@@ -2,7 +2,7 @@ import React, { useState, useContext } from 'react';
 
 import { Box, Tab, Tabs, Toolbar, Typography } from '@material-ui/core';
 
-import { ThemeContext } from '../theme.js';
+import { ThemeContext } from 'theme.js';
 import { ClipficsLabelsPanel } from './LabelsPanel.js';
 
 

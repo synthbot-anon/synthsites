@@ -17,10 +17,10 @@ import MenuIcon from '@material-ui/icons/Menu';
 import { ThemeContext, useStyles, theme } from './theme.js';
 import { ClipficsContext } from './tasks.js';
 import Hotkeys from './common/Hotkeys.js';
+import Terminal from './common/Terminal.js';
 import ContainerSelection from './common/ContainerSelection.js';
 import FileImportButton from './common/FileImportButton.js';
 import ClipficsControlPanel from './clipfics/ClipficsControlPanel.js';
-
 import CookieSynthPaper from './clipfics/cookiesynth/CookieSynthPaper.js';
 
 /**
@@ -79,35 +79,45 @@ const App = () => {
   taskContext.hotkeys.useHotkeys();
   taskContext.storyContainerRef = createRef();
   taskContext.selection = new ContainerSelection(taskContext.storyContainerRef);
+  taskContext.terminal = new Terminal();
+
+  taskContext.terminal.log("hello, anonymous.");
+  taskContext.terminal.log("do you need help using this interface?");
+
+  const TerminalDisplay = taskContext.terminal.Component;
 
   return (
     <ThemeContext.Provider value={themeContext}>
       <div id="app" className={classes['c-app--full-height']}>
         <NavigationBar />
-        <Grid container spacing={2}>
-          <Grid item xs={7} className={classes['c-story-panel--full-height']}>
-            <div
-              ref={taskContext.storyContainerRef}
-              className={classes['c-story-panel__container']}
-            >
-              <CookieSynthPaper
-                id="js-story-sheet"
-                className={classes['c-story-panel__paper']}
+        <ClipficsContext.Provider value={taskContext}>
+          <Grid container spacing={2}>
+            <Grid item xs={7} className={classes['c-story-panel--full-height']}>
+              <div
+                ref={taskContext.storyContainerRef}
+                className={classes['c-story-panel__container']}
               >
-                {storyContents}
-              </CookieSynthPaper>
-            </div>
-          </Grid>
-          <Grid item xs={5} className={classes['c-control-panel']}>
-            <ClipficsContext.Provider value={taskContext}>
+                <CookieSynthPaper
+                  id="js-story-sheet"
+                  className={classes['c-story-panel__paper']}
+                >
+                  {storyContents}
+                </CookieSynthPaper>
+              </div>
+            </Grid>
+            <Grid item xs={5} className={classes['c-control-panel']}>
               <ClipficsControlPanel />
-            </ClipficsContext.Provider>
-            <Grid container>
-              <FileImportButton onFileLoaded={setStoryContents} />
-              <CookieSynthExport />
+              <Grid container>
+                <FileImportButton onFileLoaded={(contents) => {
+                  taskContext.terminal.log('loading fic');
+                  setStoryContents(contents);
+                }} />
+                <CookieSynthExport />
+              </Grid>
             </Grid>
           </Grid>
-        </Grid>
+        </ClipficsContext.Provider>
+        <TerminalDisplay />
       </div>
     </ThemeContext.Provider>
   );

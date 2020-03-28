@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import { Button } from '@material-ui/core';
-import { ThemeContext } from '../theme.js';
+import { ThemeContext } from 'theme.js';
 
 /**
  * Button to load a story file into the StorySheet.

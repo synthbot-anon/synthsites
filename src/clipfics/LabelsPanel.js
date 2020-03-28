@@ -1,12 +1,12 @@
 import React, { useState, useContext } from 'react';
 import { Grid } from '@material-ui/core';
 
-import { ThemeContext } from '../theme.js';
-import { ClipficsContext } from '../tasks.js';
-import TextFieldModal from '../common/TextFieldModal.js';
-import { useSelectionCache } from '../common/ContainerSelection.js';
-import useModalControls from '../common/useModalControls.js';
-import useLoopControls from '../common/useLoopControls.js';
+import { ThemeContext } from 'theme.js';
+import { useClipfics } from 'tasks.js';
+import TextFieldModal from 'common/TextFieldModal.js';
+import { useSelectionCache } from 'common/ContainerSelection.js';
+import useModalControls from 'common/useModalControls.js';
+import useLoopControls from 'common/useLoopControls.js';
 import CookieSynthLabel from './cookiesynth/CookieSynthLabel.js';
 
 /**
@@ -15,7 +15,7 @@ import CookieSynthLabel from './cookiesynth/CookieSynthLabel.js';
  * @param containerRef React ref for where a selection is valid
  */
 const ClipficsHotkey = ({ onLabel, shortcut, description }) => {
-  const { hotkeys, selection } = useContext(ClipficsContext);
+  const { hotkeys, selection } = useClipfics();
 
   // Highlight selection only if it falls within the container
   const highlightWithinElement = () => {
@@ -37,7 +37,7 @@ const ClipficsHotkey = ({ onLabel, shortcut, description }) => {
 export const ClipficsLabelsPanel = ({ ...props }) => {
   const { classes } = useContext(ThemeContext);
 
-  const { hotkeys, selection } = useContext(ClipficsContext);
+  const { hotkeys, selection, terminal } = useClipfics();
   const { saveSelection, restoreSelection } = useSelectionCache(selection);
   const {
     currentItem: currentMissingProp,
@@ -63,7 +63,11 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
 
     beginRequestMissingProps(pendingLabel.missingProperties)
       .then(() => {
-        pendingLabel.injectLabel();
+        if (pendingLabel.injectLabel()) {
+          terminal.log('added label:', pendingLabel.completedLabel);
+        } else {
+          terminal.log('invalid label:', pendingLabel.completedLabel);
+        }
         restoreSelection();
       })
       .catch((error) => {

@@ -27,6 +27,6 @@ export const getMissingValues = (label) => {
 
 export const getTypeFromLabel = (label) => {
   const match = OPEN_REGEX.exec(label);
-  const [full, keyword] = match;
+  const [, keyword] = match;
   return keyword;
 };

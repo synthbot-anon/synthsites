@@ -2,14 +2,22 @@ import React from 'react';
 import { Paper } from '@material-ui/core';
 import sanitizeHtml from 'sanitize-html';
 
+import { useClipfics } from 'tasks.js';
+
 // Panel used to display an HTML story.
 export default ({ children, ...other }) => {
   const sanitizedHtml = customSanitizeHtml(children);
+  const { terminal } = useClipfics();
 
   const div = document.createElement('div');
   div.innerHTML = sanitizedHtml;
 
   const labels = div.querySelectorAll('[data-cookiesynth-style]');
+  if (labels.length !== 0) {
+    terminal.log("loading existing tags");
+  }
+
+
   labels.forEach((e) => {
     e.setAttribute('style', 'background-color: yellow;');
   });
