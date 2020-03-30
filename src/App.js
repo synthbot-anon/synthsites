@@ -16,12 +16,13 @@ import MenuIcon from '@material-ui/icons/Menu';
 
 import { ThemeContext, useStyles, theme } from './theme.js';
 import { ClipficsContext } from './tasks.js';
-import Hotkeys from './common/Hotkeys.js';
-import Terminal from './common/Terminal.js';
-import ContainerSelection from './common/ContainerSelection.js';
-import FileImportButton from './common/FileImportButton.js';
-import ClipficsControlPanel from './clipfics/ClipficsControlPanel.js';
-import CookieSynthPaper from './clipfics/cookiesynth/CookieSynthPaper.js';
+import Hotkeys from 'common/Hotkeys.js';
+import Terminal from 'common/Terminal.js';
+import ContainerSelection from 'common/ContainerSelection.js';
+import FileImportButton from 'common/FileImportButton.js';
+import ClipficsControlPanel from 'clipfics/ClipficsControlPanel.js';
+import CookieSynthPaper from 'clipfics/cookiesynth/CookieSynthPaper.js';
+import HtmlNavigator from 'common/HtmlNavigator.js';
 
 /**
  * Navigation bar at the top of the site. This doesn't serve any functiona purpose at
@@ -80,6 +81,7 @@ const App = () => {
   taskContext.storyContainerRef = createRef();
   taskContext.selection = new ContainerSelection(taskContext.storyContainerRef);
   taskContext.terminal = new Terminal();
+  taskContext.storyNavigator = new HtmlNavigator(taskContext.storyContainerRef);
 
   taskContext.terminal.log("hello, anonymous.");
   taskContext.terminal.log("do you need help using this interface?");

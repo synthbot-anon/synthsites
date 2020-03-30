@@ -15,13 +15,15 @@ import CookieSynthLabel from './cookiesynth/CookieSynthLabel.js';
  * @param containerRef React ref for where a selection is valid
  */
 const ClipficsHotkey = ({ onLabel, shortcut, description }) => {
-  const { hotkeys, selection } = useClipfics();
+  const { hotkeys, selection, terminal } = useClipfics();
 
   // Highlight selection only if it falls within the container
   const highlightWithinElement = () => {
     const selectionRange = selection.getRange();
     if (selectionRange) {
       onLabel(description);
+    } else {
+      terminal.log('you need to select some story text first');
     }
   };
 
@@ -37,7 +39,7 @@ const ClipficsHotkey = ({ onLabel, shortcut, description }) => {
 export const ClipficsLabelsPanel = ({ ...props }) => {
   const { classes } = useContext(ThemeContext);
 
-  const { hotkeys, selection, terminal } = useClipfics();
+  const { hotkeys, selection, terminal, storyNavigator } = useClipfics();
   const { saveSelection, restoreSelection } = useSelectionCache(selection);
   const {
     currentItem: currentMissingProp,
@@ -112,6 +114,39 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
           onLabel={onTemplateSpecified}
           description='meta character="?" emotion="?"'
         />
+        <hotkeys.Hotkey
+          shortcut=">"
+          action={() => {
+            const currentSelection = selection.getRange();
+            const nextSelection = storyNavigator.getNextSectionRange(currentSelection);
+            selection.setRange(nextSelection);
+          }}
+        />
+        <hotkeys.Hotkey
+          shortcut="<"
+          action={() => {
+            const currentSelection = selection.getRange();
+            const prevSelection = storyNavigator.getPrevSectionRange(currentSelection);
+            selection.setRange(prevSelection);
+          }}
+        />
+        <hotkeys.Hotkey
+          shortcut="'"
+          action={() => {
+            const currentSelection = selection.getRange();
+            const nextSelection = storyNavigator.getNextRegexRange(currentSelection, /"[^"]*"?/g);
+            selection.setRange(nextSelection);
+          }}
+        />
+        <hotkeys.Hotkey
+          shortcut='"'
+          action={() => {
+            const currentSelection = selection.getRange();
+            const prevSelection = storyNavigator.getPrevRegexRange(currentSelection, /"[^"]*"?/g);
+            selection.setRange(prevSelection);
+          }}
+        />
+
         <div children={displayKeys} />
         <TextFieldModal
           open={isTemplateModalOpen}
