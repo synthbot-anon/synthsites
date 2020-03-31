@@ -55,6 +55,7 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
   } = useModalControls();
 
   const [displayKeys, setDisplayKeys] = useState([]);
+  const [lastSelection, setLastSelection] = useState();
   let [pendingLabel, setPendingLabel] = useState();
 
   const onTemplateSpecified = (text) => {
@@ -93,6 +94,19 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
     setDisplayKeys([newHotkey, ...displayKeys]);
   };
 
+  const selectNext = (getNextRange) => {
+    let currentSelection = selection.getRange();
+    if (!currentSelection) {
+      currentSelection = lastSelection || storyNavigator.getInitialRange();
+    }
+
+    const nextSelection = getNextRange(currentSelection);
+    if (nextSelection) {
+      setLastSelection(nextSelection);
+      selection.setRange(nextSelection);
+    }
+  };
+
   return (
     <Grid container {...props}>
       <Grid item className={classes['c-controls--fill-width']}>
@@ -116,35 +130,35 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
         />
         <hotkeys.Hotkey
           shortcut=">"
-          action={() => {
-            const currentSelection = selection.getRange();
-            const nextSelection = storyNavigator.getNextSectionRange(currentSelection);
-            selection.setRange(nextSelection);
-          }}
+          action={() =>
+            selectNext((current) => storyNavigator.getNextSectionRange(current))
+          }
+          description="Select next paragraph"
         />
         <hotkeys.Hotkey
           shortcut="<"
-          action={() => {
-            const currentSelection = selection.getRange();
-            const prevSelection = storyNavigator.getPrevSectionRange(currentSelection);
-            selection.setRange(prevSelection);
-          }}
+          action={() =>
+            selectNext((current) => storyNavigator.getPrevSectionRange(current))
+          }
+          description="Select previous paragraph"
         />
         <hotkeys.Hotkey
           shortcut="'"
-          action={() => {
-            const currentSelection = selection.getRange();
-            const nextSelection = storyNavigator.getNextRegexRange(currentSelection, /"[^"]*"?/g);
-            selection.setRange(nextSelection);
-          }}
+          action={() =>
+            selectNext((current) =>
+              storyNavigator.getNextRegexRange(current, /"[^ ][^"]*"?/g),
+            )
+          }
+          description="Select next quote"
         />
         <hotkeys.Hotkey
-          shortcut='"'
-          action={() => {
-            const currentSelection = selection.getRange();
-            const prevSelection = storyNavigator.getPrevRegexRange(currentSelection, /"[^"]*"?/g);
-            selection.setRange(prevSelection);
-          }}
+          shortcut=";"
+          action={() =>
+            selectNext((current) =>
+              storyNavigator.getPrevRegexRange(current, /"[^ ][^"]*"?/g),
+            )
+          }
+          description="Select previous quote"
         />
 
         <div children={displayKeys} />

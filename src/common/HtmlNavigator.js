@@ -63,56 +63,26 @@ export default class HtmlNavigator {
     }
 
     const result = this.getContainingSection(nextCandidate);
-    if (result.textContent.length !== 0) {
+    if (this.isNodeContained(result) && result.textContent.length !== 0) {
       return result;
     }
 
     return this.getNextSection(result, getNextCandidate);
   }
 
-  /**
-   * Returns the section that includes the next section edge.
-   *
-   * If the next section edge is covered by the provided selection, this returns the
-   * next adjacent section. Otherwise it returns the section that covers the provided
-   * section.
-   *
-   * @param selectedNode The selection node closest to the relevant section edge
-   * @param selectedOffset The selection offset closest to the relevant section edge
-   * @param getSectionEdge (section) => { node, offset } should yield the comparison
-   * edge position for the the input section.
-   * @param shiftPosition (node) => adjacentNode, should probably be shiftLeft or
-   * shiftRight.
-   */
+  getInitialRange() {
+    const startNode = leftMost(this.#containerRef.current);
+    const result = new Range();
+    result.setStart(startNode, 0);
+    result.setEnd(startNode, 0);
+    return result;
+  }
 
-  getNextEdgeSection({ selectedNode, selectedOffset, getSectionEdge, shiftNode }) {
-    if (!this.isNodeContained(selectedNode)) {
-      return null;
-    }
-
-    const currentSection = this.getContainingSection(selectedNode);
+  getNextSectionRange(initialRange) {
     const result = new Range();
 
-    if (currentSection) {
-      // if there are contents remaining in the section, return the current section
-      const { node: endNode, offset: endOffset } = getSectionEdge(currentSection);
-      const startSectionOffset = getSectionOffset(
-        currentSection,
-        selectedNode,
-        selectedOffset,
-      );
-      const endSectionOffset = getSectionOffset(currentSection, endNode, endOffset);
-
-      if (startSectionOffset !== endSectionOffset) {
-        result.selectNodeContents(currentSection);
-        return result;
-      }
-    }
-
-    // return the next paragraph
-    const nextSection = this.getNextSection(selectedNode, shiftNode);
+    const nextSection = this.getNextSection(initialRange.startContainer, nextRight);
     if (!nextSection) {
-      // we've reached the end of the container
       return null;
     }
 
@@ -120,31 +90,30 @@ export default class HtmlNavigator {
     return result;
   }
 
-  getNextSectionRange(initialRange) {
-    return this.getNextEdgeSection({
-      selectedNode: initialRange.endContainer,
-      selectedOffset: initialRange.endOffset,
-      getSectionEdge: getSectionEnd,
-      shiftNode: nextRight,
-    });
-  }
-
   getPrevSectionRange(initialRange) {
-    return this.getNextEdgeSection({
-      selectedNode: initialRange.startContainer,
-      selectedOffset: initialRange.startOffset,
-      getSectionEdge: getSectionStart,
-      shiftNode: nextLeft,
-    });
+    const result = new Range();
+
+    const nextSection = this.getNextSection(initialRange.endContainer, nextLeft);
+    if (!nextSection) {
+      return null;
+    }
+
+    result.selectNodeContents(nextSection);
+    return result;
   }
 
   getNextRegexRange(initialRange, regex) {
     let { endContainer: startContainer, endOffset: startOffset } = initialRange;
     let section = this.getContainingSection(startContainer);
-    let { node: endContainer, offset: endOffset } = getSectionEnd(section);
-    let startSectionOffset = getSectionOffset(section, startContainer, startOffset);
+    let endContainer;
+    let endOffset;
+    let startSectionOffset;
 
-    while (true) {
+    if (section) {
+      // if there's remaining text in the current section, handle that
+      ({ node: endContainer, offset: endOffset } = getSectionEnd(section));
+      startSectionOffset = getSectionOffset(section, startContainer, startOffset);
+
       const matches = getRegexMatchesInRange(
         regex,
         startContainer,
@@ -157,23 +126,45 @@ export default class HtmlNavigator {
         const match = matches[0];
         return getSectionRangeFromMatch(section, startSectionOffset, match);
       }
+    }
 
+    // loop over subsequent sections and check for a match
+    for (;;) {
       section = this.getNextSection(startContainer, nextRight);
-      startSectionOffset = 0;
+      if (!section) {
+        return null;
+      }
 
+      startSectionOffset = 0;
       ({ startContainer, startOffset, endContainer, endOffset } = getSectionRange(
         section,
       ));
+
+      const matches = getRegexMatchesInRange(
+        regex,
+        startContainer,
+        startOffset,
+        endContainer,
+        endOffset,
+      );
+
+      if (matches.length !== 0) {
+        const match = matches[0];
+        return getSectionRangeFromMatch(section, startSectionOffset, match);
+      }
     }
   }
 
   getPrevRegexRange(initialRange, regex) {
     let { startContainer: endContainer, startOffset: endOffset } = initialRange;
     let section = this.getContainingSection(endContainer);
-    let { node: startContainer, offset: startOffset } = getSectionStart(section);
-    let startSectionOffset = 0;
+    let startContainer;
+    let startOffset;
 
-    while (true) {
+    if (section) {
+      // if there's preceeding text in the current section, handle that
+      ({ node: startContainer, offset: startOffset } = getSectionStart(section));
+
       const matches = getRegexMatchesInRange(
         regex,
         startContainer,
@@ -184,20 +175,44 @@ export default class HtmlNavigator {
 
       if (matches.length !== 0) {
         const match = matches[matches.length - 1];
-        return getSectionRangeFromMatch(section, startSectionOffset, match);
+        return getSectionRangeFromMatch(section, 0, match);
       }
+    }
 
-      section = this.getNextSection(startContainer, nextLeft);
-      startSectionOffset = 0;
+    // loop over preceeding sections and check for a match
+    for (;;) {
+      section = this.getNextSection(endContainer, nextLeft);
+      if (!section) {
+        return null;
+      }
 
       ({ startContainer, startOffset, endContainer, endOffset } = getSectionRange(
         section,
       ));
+
+      const matches = getRegexMatchesInRange(
+        regex,
+        startContainer,
+        startOffset,
+        endContainer,
+        endOffset,
+      );
+
+      if (matches.length !== 0) {
+        const match = matches[matches.length - 1];
+        return getSectionRangeFromMatch(section, 0, match);
+      }
     }
   }
 }
 
-const getRegexMatchesInRange = (regex, startNode, startOffset, endNode, endOffset) => {
+const getRegexMatchesInRange = (
+  regex,
+  startNode,
+  startOffset,
+  endNode,
+  endOffset,
+) => {
   const testRange = new Range();
   testRange.setStart(startNode, startOffset);
   testRange.setEnd(endNode, endOffset);
@@ -212,6 +227,7 @@ const getRegexMatchesInRange = (regex, startNode, startOffset, endNode, endOffse
 };
 
 const getSectionRangeFromMatch = (section, startSectionOffset, match) => {
+  console.log(match);
   const { node: startNode, offset: startOffset } = getSectionNode(
     section,
     match.index + startSectionOffset,
