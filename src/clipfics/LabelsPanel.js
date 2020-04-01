@@ -9,6 +9,7 @@ import useModalControls from 'common/useModalControls.js';
 import useLoopControls from 'common/useLoopControls.js';
 import CookieSynthLabel from './cookiesynth/CookieSynthLabel.js';
 
+
 /**
  * React effect to highlight text by hotkey.
  * @param navigator StateMachine with which to register this hotkey
@@ -131,14 +132,14 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
         <hotkeys.Hotkey
           shortcut=">"
           action={() =>
-            selectNext((current) => storyNavigator.getNextSectionRange(current))
+            selectNext((current) => storyNavigator.getNextPhrase(current, /\S.*\S?/g))
           }
           description="Select next paragraph"
         />
         <hotkeys.Hotkey
           shortcut="<"
           action={() =>
-            selectNext((current) => storyNavigator.getPrevSectionRange(current))
+            selectNext((current) => storyNavigator.getPreviousPhrase(current, /\S.*\S?/g))
           }
           description="Select previous paragraph"
         />
@@ -146,20 +147,39 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
           shortcut="'"
           action={() =>
             selectNext((current) =>
-              storyNavigator.getNextRegexRange(current, /"[^ ][^"]*"?/g),
+              storyNavigator.getNextPhrase(current, /"[^ ][^"]*"?/g),
             )
           }
           description="Select next quote"
         />
         <hotkeys.Hotkey
-          shortcut=";"
+          shortcut='"'
           action={() =>
             selectNext((current) =>
-              storyNavigator.getPrevRegexRange(current, /"[^ ][^"]*"?/g),
+              storyNavigator.getPreviousPhrase(current, /"[^ ][^"]*"?/g),
             )
           }
           description="Select previous quote"
         />
+        <hotkeys.Hotkey
+          shortcut="."
+          action={() =>
+            selectNext((current) =>
+              storyNavigator.getNextPhrase(current, /(?:\w[^.?!"]*[^ "][.?!]*)/g),
+            )
+          }
+          description="Select next phrase"
+        />
+        <hotkeys.Hotkey
+          shortcut=","
+          action={() =>
+            selectNext((current) =>
+              storyNavigator.getPreviousPhrase(current, /(?:\w[^.?!"]*[^ "][.?!]*)/g),
+            )
+          }
+          description="Select previous phrase"
+        />
+
 
         <div children={displayKeys} />
         <TextFieldModal

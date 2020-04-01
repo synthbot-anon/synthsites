@@ -61,12 +61,10 @@ const customSanitizeHtml = (html) => {
       'th',
       'td',
       'pre',
-      'iframe',
     ],
     disallowedTagsMode: 'discard',
     allowedAttributes: {
       a: ['href', 'name', 'target'],
-      img: ['src'],
       span: ['data-cookiesynth', 'data-cookiesynth-style'],
     },
     selfClosing: [
