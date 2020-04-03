@@ -7,7 +7,7 @@ import TextFieldModal from 'common/TextFieldModal.js';
 import { useSelectionCache } from 'common/ContainerSelection.js';
 import useModalControls from 'common/useModalControls.js';
 import useLoopControls from 'common/useLoopControls.js';
-import CookieSynthLabel from './cookiesynth/CookieSynthLabel.js';
+import CookieSynthLabel, { getLabelDescription } from './cookiesynth/CookieSynthLabel.js';
 
 
 /**
@@ -15,14 +15,14 @@ import CookieSynthLabel from './cookiesynth/CookieSynthLabel.js';
  * @param navigator StateMachine with which to register this hotkey
  * @param containerRef React ref for where a selection is valid
  */
-const ClipficsHotkey = ({ onLabel, shortcut, description }) => {
+const ClipficsHotkey = ({ onLabel, shortcut, description, label }) => {
   const { hotkeys, selection, terminal } = useClipfics();
 
   // Highlight selection only if it falls within the container
   const highlightWithinElement = () => {
     const selectionRange = selection.getRange();
     if (selectionRange) {
-      onLabel(description);
+      onLabel(label);
     } else {
       terminal.log('you need to select some story text first');
     }
@@ -83,12 +83,14 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
   };
 
   const onHotkeyAdded = (shortcut, label) => {
+    const description = getLabelDescription(label);
     const newHotkey = (
       <ClipficsHotkey
         key={shortcut}
         onLabel={onTemplateSpecified}
         shortcut={shortcut}
-        description={label}
+        description={description || label}
+        label={label}
       />
     );
 
@@ -105,6 +107,13 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
     if (nextSelection) {
       setLastSelection(nextSelection);
       selection.setRange(nextSelection);
+
+      const span = document.createElement('span');
+      span.id = '__synth_selection';
+      nextSelection.insertNode(span);
+      span.scrollIntoView(false);
+      span.parentNode.removeChild(span);
+
     }
   };
 
@@ -122,13 +131,16 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
         <ClipficsHotkey
           shortcut="c"
           onLabel={onTemplateSpecified}
-          description='dialogue character="?"'
+          label='dialogue character="?"'
+          description='Label dialogue speaker'
         />
         <ClipficsHotkey
           shortcut="e"
           onLabel={onTemplateSpecified}
-          description='meta character="?" emotion="?"'
+          label='meta character="?" emotion="?"'
+          description='Change character emotion'
         />
+
         <hotkeys.Hotkey
           shortcut=">"
           action={() =>

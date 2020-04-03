@@ -1,10 +1,12 @@
 const KEYWORD = '[a-zA-Z][a-zA-Z0-9]*';
-const VALUE = '"(?:[^"]*|\\?)"';
+const VALUE = '(?:[^"]*|\\?)';
 const SEGTYPE = `${KEYWORD}`;
 const OPEN_REGEX = new RegExp(
-  `^\\s*(${KEYWORD})(?:\\s*=\\s*${VALUE}|(?:\\s+${SEGTYPE}\\s*=\\s*${VALUE})*)\\s*$`,
+  `^\\s*(${KEYWORD})(?:\\s*=\\s*"${VALUE}"|(?:\\s+${SEGTYPE}\\s*=\\s*"${VALUE}")*)\\s*$`,
 );
 const MISSING_VALUES_REGEX = new RegExp(`(${KEYWORD})\\s*=\\s*"(\\?)"`, 'g');
+const ALL_PROPERTIES_REGEX = new RegExp(`(${KEYWORD})\\s*=\\s*"${VALUE}"`, 'g');
+const ALL_VALUES_REGEX = new RegExp(`(?:${KEYWORD})\\s*=\\s*"(${VALUE})"`, 'g');
 
 export const isLabelValid = (label) => {
   const result = OPEN_REGEX.test(label);
@@ -29,4 +31,12 @@ export const getTypeFromLabel = (label) => {
   const match = OPEN_REGEX.exec(label);
   const [, keyword] = match;
   return keyword;
+};
+
+export const getAllProperties = (label) => {
+  return label.matchAll(ALL_PROPERTIES_REGEX);
+};
+
+export const getAllValues = (label) => {
+  return label.matchAll(ALL_VALUES_REGEX);
 };

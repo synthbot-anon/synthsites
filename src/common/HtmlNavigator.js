@@ -70,6 +70,14 @@ export default class HtmlNavigator {
     return this.getNextSection(result, getNextCandidate);
   }
 
+  getLeftSection(startingNode) {
+    return this.getNextSection(startingNode, nextLeft);
+  }
+
+  getRightSection(startingNode) {
+    return this.getNextSection(startingNode, nextRight);
+  }
+
   getInitialRange() {
     const startNode = leftMost(this.#containerRef.current);
     const result = new Range();

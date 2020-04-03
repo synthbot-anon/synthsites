@@ -16,3 +16,6 @@ html, body, #root {
 	margin: 0px;
 }
 
+#__synth_selection {
+	scroll-margin-bottom: 40vh;
+}

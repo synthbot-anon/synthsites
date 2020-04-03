@@ -9,6 +9,7 @@ import {
   Button,
   Grid,
   IconButton,
+  Paper,
   Toolbar,
   Typography,
 } from '@material-ui/core';
@@ -119,7 +120,9 @@ const App = () => {
             </Grid>
           </Grid>
         </ClipficsContext.Provider>
-        <TerminalDisplay />
+        <Paper>
+          <TerminalDisplay />
+        </Paper>
       </div>
     </ThemeContext.Provider>
   );

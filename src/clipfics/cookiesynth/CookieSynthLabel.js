@@ -1,5 +1,155 @@
-import { isLabelValid, getTagsFromLabel, getMissingValues } from './common.js';
+import {
+  isLabelValid,
+  getTagsFromLabel,
+  getMissingValues,
+  getTypeFromLabel,
+  getAllProperties,
+  getAllValues,
+} from './common.js';
 import RangeUtils from 'common/RangeUtils.js';
+
+const plural = (str) => {
+  if (str.endsWith('s')) {
+    return `${str}'`;
+  } else {
+    return `${str}'s`;
+  }
+};
+
+const replacePattern = (str, pattern, value) => {
+  let result = str;
+  result = result.split(`${pattern}'s`).join(plural(value));
+  result = result.split(pattern).join(value);
+  return result;
+};
+
+const matchesToString = (matches) => {
+  const result = [];
+  for (let match of matches) {
+    result.push(match[1]);
+  }
+
+  return result;
+};
+
+/**
+ *
+ * WARNING: This assumes that no key is repeated.
+ */
+class DefaultDescription {
+  #description;
+  #type;
+  #properties;
+  #values;
+
+  constructor(partialLabel, description) {
+    this.#description = description;
+    this.#type = getTypeFromLabel(partialLabel);
+    this.#properties = matchesToString(getAllProperties(partialLabel));
+    this.#values = matchesToString(getAllValues(partialLabel));
+
+    if (new Set(this.#properties).size !== this.#properties.length) {
+      console.log(
+        'WARNING: DefaultDescription does not work with duplicate properties',
+      );
+    }
+  }
+
+  getDescription(targetLabel) {
+    let result = this.#description;
+
+    const targetType = getTypeFromLabel(targetLabel);
+    const targetProps = matchesToString(getAllProperties(targetLabel));
+    const targetValues = matchesToString(getAllValues(targetLabel));
+
+    if (new Set(targetProps).size !== targetProps.length) {
+      console.log(
+        'WARNING: DefaultDescription does not work with duplicate properties',
+      );
+      return null;
+    }
+
+    // Easy check by type and lengths. We'll assume these match later.
+    if (
+      targetType !== this.#type ||
+      targetProps.length !== this.#properties.length ||
+      targetValues.length !== this.#values.length
+    ) {
+      console.log('easy miss');
+      console.log(targetType, 'vs', this.#type);
+      console.log(targetProps.length, 'vs', this.#properties.length);
+      console.log(targetValues.length, 'vs', this.#values.length);
+      return null;
+    }
+
+    // We'll need to look up label values by property
+    const targetDict = {};
+    for (let i = 0; i < targetProps.length; i++) {
+      targetDict[targetProps[i]] = targetValues[i];
+    }
+
+    // Check all properties and values
+    for (let i = 0; i < this.#properties.length; i++) {
+      const prop = this.#properties[i];
+      const val = this.#values[i];
+
+      if (!(prop in targetDict)) {
+        // We're missing a property. It can't be a match.
+        console.log('missing property', prop);
+        return null;
+      }
+
+      if (val.startsWith('{') && val.endsWith('}')) {
+        // This value must be assigned, so it must be not a ? in the targetLabel
+        if (targetDict[prop] === '?') {
+          console.log('shouldnt have a value here', prop);
+          return null;
+        }
+        result = replacePattern(result, val, targetDict[prop]);
+      } else {
+        // All other values should match identically
+        if (targetDict[prop] !== val) {
+          console.log('should have a match here', val);
+          return null;
+        }
+
+        if (!targetValues.includes(val)) {
+          return null;
+        }
+      }
+    }
+
+    // Everything checks out.
+    return result;
+  }
+}
+
+const KNOWN_DESCRIPTIONS = [
+  new DefaultDescription('dialogue speaker="{speaker}"', 'Label speaker as {speaker}'),
+  new DefaultDescription(
+    'meta character="{character}" emotion="{emotion}"',
+    "Change {character}'s emotion to {emotion}",
+  ),
+  new DefaultDescription(
+    'meta character="{character}" emotion="?"',
+    "Change {character}'s emotion",
+  ),
+  new DefaultDescription(
+    'meta character="?" emotion="{emotion}"',
+    "Change a character's emotion to {emotion}",
+  ),
+];
+
+export const getLabelDescription = (partialLabel) => {
+  for (let knownDesc of KNOWN_DESCRIPTIONS) {
+    const result = knownDesc.getDescription(partialLabel);
+    if (result) {
+      return result;
+    }
+  }
+
+  return null;
+};
 
 export default class CookieSynthLabel {
   missingProperties = [];
@@ -30,6 +180,10 @@ export default class CookieSynthLabel {
   }
 
   getCompletedLabel() {
+    if (!this.completedLabel) {
+      return this.completedLabel;
+    }
+
     let originalLabel = this.#label;
     let result = '';
     let lastOffset = 0;
