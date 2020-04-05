@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
-import CompletableTextField from 'common/CompletableTextField.js';
+import useCompletableTextField from 'common/useCompletableTextField.js';
 import { ThemeContext } from 'theme.js';
-import { Paper, Grid, Modal, Typography } from '@material-ui/core';
+import { Grid, Modal, Typography } from '@material-ui/core';
 
 const IGNORE_KEYS = new Set(['Shift', 'Control', 'Alt', 'CapsLock']);
 
@@ -12,22 +12,15 @@ const executeActions = (actions, e) => {
 
   e.preventDefault();
   actions.forEach((f) => f(e.key));
-}
+};
 
 export default class Hotkeys {
+  lastUpdate = 0;
+  watchers = [];
   #hotkeys = {};
-  CaptureShortcut;
-  Hotkey;
-  CreateNewHotkey;
-
-  constructor() {
-    this.CaptureShortcut = (props) => <CaptureShortcut hotkeys={this} {...props} />;
-    this.Hotkey = (props) => <Hotkey hotkeys={this} {...props} />;
-    this.CreateNewHotkey = (props) => <CreateNewHotkey hotkeys={this} {...props} />;
-  }
 
   // React effect to use hotkeys on a page
-  useHotkeys() {
+  useHotkeyListener() {
     const keyDownListener = (e) => {
       if (IGNORE_KEYS.has(e.key)) {
         return;
@@ -70,29 +63,27 @@ export default class Hotkeys {
     }
 
     previousActions.push(action);
+    this.lastUpdate += 1;
   }
 
   unregisterHotkey(shortcut, action) {
     this.#hotkeys[shortcut] = this.#hotkeys[shortcut].filter((x) => x !== action);
+    this.lastUpdate += 1;
+  }
+
+  useHotkeys() {
+    const [, setLastUpdate] = useState(this.lastUpdate);
+
+    useEffect(() => {
+      this.watchers.push(setLastUpdate);
+      return () => {
+        this.watchers = this.watchers.filter((x) => x !== setLastUpdate);
+      };
+    }, []);
+
+    return this.#hotkeys;
   }
 }
-
-const Hotkey = ({ hotkeys, shortcut, action, description, ...other }) => {
-  const { classes } = useContext(ThemeContext);
-
-  useEffect(() => {
-    hotkeys.registerHotkey(shortcut, action);
-    return () => {
-      hotkeys.unregisterHotkey(shortcut, action);
-    };
-  });
-
-  return (
-    <Paper className={classes['c-hotkey__paper']} {...other}>
-      {`${shortcut} 🠖 ${description}`}
-    </Paper>
-  );
-};
 
 const CaptureShortcut = ({ hotkeys, description, onCapture, ...other }) => {
   const { classes } = useContext(ThemeContext);
@@ -130,7 +121,14 @@ const CaptureShortcut = ({ hotkeys, description, onCapture, ...other }) => {
   );
 };
 
-const CreateNewHotkey = ({ hotkeys, onHotkeyAdded, ...other }) => {
+const CreateNewHotkeyComponent = ({
+  CompletableTextField,
+  inputRef,
+  hotkeys,
+  onHotkeyAdded,
+  value,
+  ...other
+}) => {
   const { classes } = useContext(ThemeContext);
 
   const [pendingLabel, setPendingLabel] = useState();
@@ -141,6 +139,10 @@ const CreateNewHotkey = ({ hotkeys, onHotkeyAdded, ...other }) => {
     setCaptureShortcut(true);
   };
 
+  useEffect(() => {
+    inputRef.requestHotkeyFor = requestHotkeyFor;
+  }, [inputRef]);
+
   const onShortcutCaptured = (shortcut, label) => {
     setCaptureShortcut(false);
     onHotkeyAdded(shortcut, label);
@@ -149,6 +151,7 @@ const CreateNewHotkey = ({ hotkeys, onHotkeyAdded, ...other }) => {
   return (
     <div>
       <CompletableTextField
+        value={value}
         label="Add hotkey"
         className={`${classes['c-controls--fill-width']} ${classes['c-controls__textfield']}`}
         onComplete={requestHotkeyFor}
@@ -165,4 +168,26 @@ const CreateNewHotkey = ({ hotkeys, onHotkeyAdded, ...other }) => {
       </Modal>
     </div>
   );
+};
+
+export const useCreateNewHotkey = (props) => {
+  const { CompletableTextField, getValue, setValue } = useCompletableTextField();
+  const [inputRef] = useState({});
+
+  const requestHotkey = () => {
+    inputRef.requestHotkeyFor(getValue());
+  };
+
+  return {
+    CreateNewHotkey: (props) => (
+      <CreateNewHotkeyComponent
+        CompletableTextField={CompletableTextField}
+        inputRef={inputRef}
+        {...props}
+      />
+    ),
+    getValue,
+    setValue,
+    requestHotkey,
+  };
 };

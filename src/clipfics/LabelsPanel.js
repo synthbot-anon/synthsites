@@ -7,34 +7,44 @@ import TextFieldModal from 'common/TextFieldModal.js';
 import { useSelectionCache } from 'common/ContainerSelection.js';
 import useModalControls from 'common/useModalControls.js';
 import useLoopControls from 'common/useLoopControls.js';
-import CookieSynthLabel, { getLabelDescription } from './cookiesynth/CookieSynthLabel.js';
+import useInitializer from 'common/useInitializer.js';
+import CookieSynthLabel, {
+  getLabelDescription,
+} from './cookiesynth/CookieSynthLabel.js';
+import { useCreateNewHotkey } from 'common/Hotkeys.js';
 
+const Hotkey = ({ shortcut, description, ...other }) => {
+  const { classes } = useContext(ThemeContext);
+  return (
+    <div
+      key={shortcut}
+      className={classes['c-hotkey__paper']}
+    >{`${shortcut} 🠖 ${description}`}</div>
+  );
+};
 
-/**
- * React effect to highlight text by hotkey.
- * @param navigator StateMachine with which to register this hotkey
- * @param containerRef React ref for where a selection is valid
- */
-const ClipficsHotkey = ({ onLabel, shortcut, description, label }) => {
-  const { hotkeys, selection, terminal } = useClipfics();
+const useDisplayableHotkeys = () => {
+  const { hotkeys } = useClipfics();
+  const [existingHotkeyActions] = useState({});
+  let [hotkeyDisplays, setHotkeyDisplays] = useState([]);
 
-  // Highlight selection only if it falls within the container
-  const highlightWithinElement = () => {
-    const selectionRange = selection.getRange();
-    if (selectionRange) {
-      onLabel(label);
-    } else {
-      terminal.log('you need to select some story text first');
+  hotkeys.useHotkeys();
+
+  const registerHotkey = (shortcut, action, display) => {
+    if (shortcut in existingHotkeyActions) {
+      const existingAction = existingHotkeyActions[shortcut];
+      hotkeys.unregisterHotkey(shortcut, existingAction);
+      hotkeyDisplays = hotkeyDisplays.filter((x) => x['key'] !== shortcut);
     }
+
+    hotkeys.registerHotkey(shortcut, action);
+    setHotkeyDisplays((hotkeyDisplays = [display, ...hotkeyDisplays]));
+    existingHotkeyActions[shortcut] = action;
   };
 
-  return (
-    <hotkeys.Hotkey
-      shortcut={shortcut}
-      action={highlightWithinElement}
-      description={description}
-    />
-  );
+  useInitializer(() => {});
+
+  return { registerHotkey, hotkeyDisplays };
 };
 
 export const ClipficsLabelsPanel = ({ ...props }) => {
@@ -54,21 +64,27 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
     openModal: openTemplateModal,
     closeModal: closeTemplateModal,
   } = useModalControls();
+  const {
+    CreateNewHotkey,
+    setValue: setNewHotkeyValue,
+    requestHotkey: createHotkeyHotkey,
+  } = useCreateNewHotkey();
 
-  const [displayKeys, setDisplayKeys] = useState([]);
   const [lastSelection, setLastSelection] = useState();
+  const { registerHotkey, hotkeyDisplays } = useDisplayableHotkeys();
   let [pendingLabel, setPendingLabel] = useState();
 
-  const onTemplateSpecified = (text) => {
+  const labelSelectionWithTemplate = (template) => {
     saveSelection();
 
-    pendingLabel = new CookieSynthLabel(selection.getRange(), text);
+    pendingLabel = new CookieSynthLabel(selection.getRange(), template);
     setPendingLabel(pendingLabel);
 
     beginRequestMissingProps(pendingLabel.missingProperties)
       .then(() => {
         if (pendingLabel.injectLabel()) {
           terminal.log('added label:', pendingLabel.completedLabel);
+          setNewHotkeyValue(pendingLabel.completedLabel);
         } else {
           terminal.log('invalid label:', pendingLabel.completedLabel);
         }
@@ -80,21 +96,6 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
         stopRequestingProps();
         restoreSelection();
       });
-  };
-
-  const onHotkeyAdded = (shortcut, label) => {
-    const description = getLabelDescription(label);
-    const newHotkey = (
-      <ClipficsHotkey
-        key={shortcut}
-        onLabel={onTemplateSpecified}
-        shortcut={shortcut}
-        description={description || label}
-        label={label}
-      />
-    );
-
-    setDisplayKeys([newHotkey, ...displayKeys]);
   };
 
   const selectNext = (getNextRange) => {
@@ -113,93 +114,90 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
       nextSelection.insertNode(span);
       span.scrollIntoView(false);
       span.parentNode.removeChild(span);
-
     }
   };
+
+  const addCustomLabel = () => {
+    const selectionRange = selection.getRange();
+    if (!selectionRange) {
+      terminal.log('you need to select some story text first');
+      return;
+    }
+
+    saveSelection();
+    openTemplateModal();
+  };
+
+  const addTemplatedLabel = (template) => () => {
+    const selectionRange = selection.getRange();
+    if (!selectionRange) {
+      terminal.log('you need to select some story text first');
+      return;
+    }
+
+    labelSelectionWithTemplate(template);
+  };
+
+  const createHotkey = (shortcut, action, description) => {
+    registerHotkey(
+      shortcut,
+      action,
+      <Hotkey key={shortcut} shortcut={shortcut} description={description} />,
+    );
+  };
+
+  const createLabelHotkey = (shortcut, labelTemplate) => {
+    const description = getLabelDescription(labelTemplate) || labelTemplate;
+    createHotkey(shortcut, addTemplatedLabel(labelTemplate), description);
+  };
+
+  const createNextSelectionHotkey = (shortcut, regex, description) => {
+    createHotkey(
+      shortcut,
+      () => selectNext((current) => storyNavigator.getNextPhrase(current, regex)),
+      description,
+    );
+  };
+
+  const createPrevSelectionHotkey = (shortcut, regex, description) => {
+    createHotkey(
+      shortcut,
+      () => selectNext((current) => storyNavigator.getPreviousPhrase(current, regex)),
+      description,
+    );
+  };
+
+  useInitializer(() => {
+    createHotkey('Enter', addCustomLabel, 'Create custom label');
+    createLabelHotkey('e', 'meta character="?" emotion="?"');
+    createLabelHotkey('c', 'dialogue speaker="?"');
+    createNextSelectionHotkey('>', /\S.*\S?/g, 'Select next paragraph');
+    createPrevSelectionHotkey('<', /\S.*\S?/g, 'Select previous paragraph');
+    createNextSelectionHotkey("'", /"[^ ][^"]*"?/g, 'Select next quote');
+    createPrevSelectionHotkey('"', /"[^ ][^"]*"?/g, 'Select previous quote');
+    createNextSelectionHotkey(
+      '.',
+      /(?:\w[^.?!"]*[^ "][.?!]*)/g,
+      'Select next phrase',
+    );
+    createPrevSelectionHotkey(
+      ',',
+      /(?:\w[^.?!"]*[^ "][.?!]*)/g,
+      'Select previous phrase',
+    );
+    createHotkey('!', createHotkeyHotkey, 'Create a new hotkey');
+  });
 
   return (
     <Grid container {...props}>
       <Grid item className={classes['c-controls--fill-width']}>
-        <hotkeys.Hotkey
-          shortcut="Enter"
-          action={() => {
-            saveSelection();
-            openTemplateModal();
-          }}
-          description="create custom label"
-        />
-        <ClipficsHotkey
-          shortcut="c"
-          onLabel={onTemplateSpecified}
-          label='dialogue character="?"'
-          description='Label dialogue speaker'
-        />
-        <ClipficsHotkey
-          shortcut="e"
-          onLabel={onTemplateSpecified}
-          label='meta character="?" emotion="?"'
-          description='Change character emotion'
-        />
-
-        <hotkeys.Hotkey
-          shortcut=">"
-          action={() =>
-            selectNext((current) => storyNavigator.getNextPhrase(current, /\S.*\S?/g))
-          }
-          description="Select next paragraph"
-        />
-        <hotkeys.Hotkey
-          shortcut="<"
-          action={() =>
-            selectNext((current) => storyNavigator.getPreviousPhrase(current, /\S.*\S?/g))
-          }
-          description="Select previous paragraph"
-        />
-        <hotkeys.Hotkey
-          shortcut="'"
-          action={() =>
-            selectNext((current) =>
-              storyNavigator.getNextPhrase(current, /"[^ ][^"]*"?/g),
-            )
-          }
-          description="Select next quote"
-        />
-        <hotkeys.Hotkey
-          shortcut='"'
-          action={() =>
-            selectNext((current) =>
-              storyNavigator.getPreviousPhrase(current, /"[^ ][^"]*"?/g),
-            )
-          }
-          description="Select previous quote"
-        />
-        <hotkeys.Hotkey
-          shortcut="."
-          action={() =>
-            selectNext((current) =>
-              storyNavigator.getNextPhrase(current, /(?:\w[^.?!"]*[^ "][.?!]*)/g),
-            )
-          }
-          description="Select next phrase"
-        />
-        <hotkeys.Hotkey
-          shortcut=","
-          action={() =>
-            selectNext((current) =>
-              storyNavigator.getPreviousPhrase(current, /(?:\w[^.?!"]*[^ "][.?!]*)/g),
-            )
-          }
-          description="Select previous phrase"
-        />
-
-
-        <div children={displayKeys} />
+        <div className={classes['c-controls__hotkey-list']} children={hotkeyDisplays} />
         <TextFieldModal
           open={isTemplateModalOpen}
           onComplete={(text) => {
             closeTemplateModal();
             restoreSelection();
-            onTemplateSpecified(text);
+            labelSelectionWithTemplate(text);
           }}
           onClose={() => {
             closeTemplateModal();
@@ -216,7 +214,7 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
           onClose={stopRequestingProps}
           label={currentMissingProp}
         />
-        <hotkeys.CreateNewHotkey onHotkeyAdded={onHotkeyAdded} />
+        <CreateNewHotkey hotkeys={hotkeys} onHotkeyAdded={createLabelHotkey} />
       </Grid>
     </Grid>
   );

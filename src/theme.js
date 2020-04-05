@@ -9,16 +9,14 @@ export const theme = createMuiTheme();
 // TODO: use BEM naming conventions for these
 export const useStyles = makeStyles({
   'c-app--full-height': {
-    height: 'calc(100vh - 16px)',
-    'max-height': 'calc(100vh - 16px)',
+    height: 'calc(100vh - 4px)',
+    'max-height': 'calc(100vh - 4px)',
   },
 
   'c-story-panel--full-height': {
     'max-height': 'calc(85vh - 64px)',
     'height': 'calc(85vh - 64px)',
   },
-
-  'c-control-panel': {},
 
   'c-fileio-import-button': {
     background: theme.palette.primary.main,
@@ -42,6 +40,11 @@ export const useStyles = makeStyles({
     height: '100%',
   },
 
+  'c-control-panel': {
+    'max-height': 'calc(85vh - 64px)',
+    'height': 'calc(85vh - 64px)',
+  },
+
   'c-controls--fill-width': {
     width: '100%',
   },
@@ -49,6 +52,13 @@ export const useStyles = makeStyles({
   'c-controls__textfield': {
     'margin-top': theme.spacing(2),
     'margin-bottom': theme.spacing(2),
+  },
+
+  'c-controls__hotkey-list': {
+    'height': 'calc(85vh - 340px)',
+    'max-height': 'calc(85vh - 340px)',
+    'overflow-y': 'auto',
+    'overflow-x': 'hidden',
   },
 
   'c-hotkey__paper': {
@@ -92,12 +102,14 @@ export const useStyles = makeStyles({
 
   'c-terminal': {
     'padding-top': theme.spacing(2),
-    'padding-bottom': theme.spacing(2),
-    'padding-left': theme.spacing(1),
-    'padding-right': theme.spacing(1),
-    'max-height': 'calc(15vh - 32px)',
-    'height': 'calc(15vh - 32px)',
+    'margin-left': theme.spacing(2),
+    'margin-right': theme.spacing(2),
+    'max-height': 'calc(15vh - 8px)',
+    'height': 'calc(15vh - 8px)',
     'overflow': 'auto',
+    'bottom': '0%',
+    flexWidth: 1,
+
   },
 
   'c-terminal__history': {

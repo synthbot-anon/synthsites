@@ -24,6 +24,7 @@ import FileImportButton from 'common/FileImportButton.js';
 import ClipficsControlPanel from 'clipfics/ClipficsControlPanel.js';
 import CookieSynthPaper from 'clipfics/cookiesynth/CookieSynthPaper.js';
 import HtmlNavigator from 'common/HtmlNavigator.js';
+import useInitializer from 'common/useInitializer.js';
 
 /**
  * Navigation bar at the top of the site. This doesn't serve any functiona purpose at
@@ -76,17 +77,25 @@ const App = () => {
   };
   const classes = themeContext.classes;
 
-  const taskContext = {};
-  taskContext.hotkeys = new Hotkeys();
-  taskContext.hotkeys.useHotkeys();
-  taskContext.storyContainerRef = createRef();
-  taskContext.selection = new ContainerSelection(taskContext.storyContainerRef);
-  taskContext.terminal = new Terminal();
-  taskContext.storyNavigator = new HtmlNavigator(taskContext.storyContainerRef);
+  let [taskContext, setTaskContext] = useState();
 
-  taskContext.terminal.log("hello, anonymous.");
-  taskContext.terminal.log("do you need help using this interface?");
+  const storyContainerRef = createRef();
 
+  useInitializer(() => {
+    taskContext = {};
+    taskContext.hotkeys = new Hotkeys();
+    taskContext.storyContainerRef = storyContainerRef;
+    taskContext.selection = new ContainerSelection(storyContainerRef);
+    taskContext.terminal = new Terminal();
+    taskContext.storyNavigator = new HtmlNavigator(storyContainerRef);
+
+    taskContext.terminal.log("hello, anonymous.");
+    taskContext.terminal.log("do you need help using this interface?");
+
+    setTaskContext(taskContext);
+  });
+
+  taskContext.hotkeys.useHotkeyListener();
   const TerminalDisplay = taskContext.terminal.Component;
 
   return (

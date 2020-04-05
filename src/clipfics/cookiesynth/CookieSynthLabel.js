@@ -75,10 +75,6 @@ class DefaultDescription {
       targetProps.length !== this.#properties.length ||
       targetValues.length !== this.#values.length
     ) {
-      console.log('easy miss');
-      console.log(targetType, 'vs', this.#type);
-      console.log(targetProps.length, 'vs', this.#properties.length);
-      console.log(targetValues.length, 'vs', this.#values.length);
       return null;
     }
 
@@ -95,21 +91,18 @@ class DefaultDescription {
 
       if (!(prop in targetDict)) {
         // We're missing a property. It can't be a match.
-        console.log('missing property', prop);
         return null;
       }
 
       if (val.startsWith('{') && val.endsWith('}')) {
         // This value must be assigned, so it must be not a ? in the targetLabel
         if (targetDict[prop] === '?') {
-          console.log('shouldnt have a value here', prop);
           return null;
         }
         result = replacePattern(result, val, targetDict[prop]);
       } else {
         // All other values should match identically
         if (targetDict[prop] !== val) {
-          console.log('should have a match here', val);
           return null;
         }
 
@@ -125,7 +118,11 @@ class DefaultDescription {
 }
 
 const KNOWN_DESCRIPTIONS = [
-  new DefaultDescription('dialogue speaker="{speaker}"', 'Label speaker as {speaker}'),
+  new DefaultDescription(
+    'dialogue speaker="{speaker}"',
+    'Label speaker as {speaker}',
+  ),
+  new DefaultDescription('dialogue speaker="?"', 'Label the dialogue speaker'),
   new DefaultDescription(
     'meta character="{character}" emotion="{emotion}"',
     "Change {character}'s emotion to {emotion}",
@@ -137,6 +134,10 @@ const KNOWN_DESCRIPTIONS = [
   new DefaultDescription(
     'meta character="?" emotion="{emotion}"',
     "Change a character's emotion to {emotion}",
+  ),
+  new DefaultDescription(
+    'meta character="?" emotion="?"',
+    "Change a character's emotion",
   ),
 ];
 
@@ -180,7 +181,7 @@ export default class CookieSynthLabel {
   }
 
   getCompletedLabel() {
-    if (!this.completedLabel) {
+    if (this.completedLabel) {
       return this.completedLabel;
     }
 
