@@ -3,20 +3,19 @@ import { TextField } from '@material-ui/core';
 
 const CompletableTextFieldComponent = ({ inputRef, onComplete, value, ...other }) => {
   const normalizedValue = value || '';
-
-  /* React does weird things with controlled input fields. We need a separate copy of
-   * the field to capture changes specified by the parent component. */
-  const [defaultValue, setDefaultValue] = useState(normalizedValue);
   const [displayValue, setDisplayValue] = useState(normalizedValue);
 
   useEffect(() => {
     inputRef.setDisplayValue = setDisplayValue;
+
+    return () => {
+      inputRef.setDisplayValue = null;
+    }
   }, [inputRef]);
 
-  if (normalizedValue !== defaultValue) {
-    setDefaultValue(normalizedValue);
+  useEffect(() => {
     setDisplayValue(normalizedValue);
-  }
+  }, [normalizedValue]);
 
   const onSubmitted = (e) => {
     e.preventDefault();

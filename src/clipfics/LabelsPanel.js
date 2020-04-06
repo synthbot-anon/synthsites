@@ -60,19 +60,33 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
     terminate: stopRequestingProps,
   } = useLoopControls();
   const {
-    isModalOpen: isTemplateModalOpen,
-    openModal: openTemplateModal,
-    closeModal: closeTemplateModal,
+    isModalOpen: isCustomLabelModalOpen,
+    openModal: openCustomLabelModal,
+    closeModal: closeCustomLabelModal,
   } = useModalControls();
   const {
     CreateNewHotkey,
     setValue: setNewHotkeyValue,
     requestHotkey: createHotkeyHotkey,
   } = useCreateNewHotkey();
+  const {
+    isModalOpen: isModifyLabelModalOpen,
+    openModal: openModifyLabelModal,
+    closeModal: closeModifyLabelModal,
+  } = useModalControls();
+  let [modifyLabelCallback, setModifyLabelCallback] = useState();
+  let [originalLabel, setOriginalLabel] = useState();
 
   const [lastSelection, setLastSelection] = useState();
   const { registerHotkey, hotkeyDisplays } = useDisplayableHotkeys();
   let [pendingLabel, setPendingLabel] = useState();
+
+  const requestNewLabel = (currentLabel, onComplete) => {
+    modifyLabelCallback = onComplete;
+    setOriginalLabel(originalLabel = currentLabel);
+    setModifyLabelCallback(() => modifyLabelCallback);
+    openModifyLabelModal();
+  }
 
   const labelSelectionWithTemplate = (template) => {
     saveSelection();
@@ -82,8 +96,7 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
 
     beginRequestMissingProps(pendingLabel.missingProperties)
       .then(() => {
-        if (pendingLabel.injectLabel()) {
-          terminal.log('added label:', pendingLabel.completedLabel);
+        if (pendingLabel.injectLabel(terminal, requestNewLabel)) {
           setNewHotkeyValue(pendingLabel.completedLabel);
         } else {
           terminal.log('invalid label:', pendingLabel.completedLabel);
@@ -125,7 +138,7 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
     }
 
     saveSelection();
-    openTemplateModal();
+    openCustomLabelModal();
   };
 
   const addTemplatedLabel = (template) => () => {
@@ -191,16 +204,19 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
   return (
     <Grid container {...props}>
       <Grid item className={classes['c-controls--fill-width']}>
-        <div className={classes['c-controls__hotkey-list']} children={hotkeyDisplays} />
+        <div
+          className={classes['c-controls__hotkey-list']}
+          children={hotkeyDisplays}
+        />
         <TextFieldModal
-          open={isTemplateModalOpen}
+          open={isCustomLabelModalOpen}
           onComplete={(text) => {
-            closeTemplateModal();
+            closeCustomLabelModal();
             restoreSelection();
             labelSelectionWithTemplate(text);
           }}
           onClose={() => {
-            closeTemplateModal();
+            closeCustomLabelModal();
             restoreSelection();
           }}
           label="Add label"
@@ -213,6 +229,18 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
           }}
           onClose={stopRequestingProps}
           label={currentMissingProp}
+        />
+        <TextFieldModal
+          open={isModifyLabelModalOpen}
+          onComplete={(text) => {
+            modifyLabelCallback(text);
+            closeModifyLabelModal();
+          }}
+          onClose={() => {
+            closeModifyLabelModal();
+          }}
+          value={originalLabel}
+          label="Modify label"
         />
         <CreateNewHotkey hotkeys={hotkeys} onHotkeyAdded={createLabelHotkey} />
       </Grid>

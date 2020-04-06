@@ -1,3 +1,6 @@
+import React from 'react';
+import { Typography } from '@material-ui/core';
+
 import {
   isLabelValid,
   getTagsFromLabel,
@@ -7,6 +10,7 @@ import {
   getAllValues,
 } from './common.js';
 import RangeUtils from 'common/RangeUtils.js';
+import { TerminalType, TerminalButton, TerminalSpan } from 'common/Terminal.js';
 
 const plural = (str) => {
   if (str.endsWith('s')) {
@@ -200,18 +204,97 @@ export default class CookieSynthLabel {
     return result;
   }
 
-  injectLabel() {
-    const completedLabel = this.getCompletedLabel();
+  injectLabel(terminal, requestNewLabel) {
+    let completedLabel = this.getCompletedLabel();
 
     if (!isLabelValid(completedLabel)) {
       return false;
     }
 
-    const [tagStart, tagEnd] = getTagsFromLabel(completedLabel);
-    addLabelToRange(tagStart, tagEnd, this.#range);
+    const utils = new RangeUtils(this.#range);
+
+    // add the label
+    let [tagStart, tagEnd] = getTagsFromLabel(completedLabel);
+    const indicator = new LabelIndicator(utils, tagStart, tagEnd);
+    indicator.inject();
+
+    // add the highlight
+    const highlightNodes = [];
+    utils.apply((range) => {
+      const newNode = highlightSimpleRange(range);
+      highlightNodes.push(newNode);
+    });
+
+    const updateKey = {};
+
+    const replaceLabel = () => {
+      requestNewLabel(completedLabel, (newLabel) => {
+        if (!isLabelValid(newLabel)) {
+          console.log('invalid update');
+        }
+
+        [tagStart, tagEnd] = getTagsFromLabel(newLabel);
+        indicator.updateTags(tagStart, tagEnd);
+
+        updateKey.current = terminal.update(
+          updateKey.current,
+          <LabelLog
+            label={newLabel}
+            onReplace={replaceLabel}
+            onRemove={removeLabel}
+          />,
+        );
+
+        completedLabel = newLabel;
+        return completedLabel;
+      });
+
+      return true;
+    };
+
+    const removeLabel = () => {
+      for (let node of highlightNodes) {
+        node.replaceWith(...node.childNodes);
+      }
+
+      indicator.remove();
+
+      updateKey.current = terminal.update(
+        updateKey.current,
+        <TerminalSpan>
+          <LabelLog label={completedLabel} removed="true" />
+        </TerminalSpan>,
+      );
+    };
+
+    updateKey.current = terminal.append(
+      <LabelLog
+        label={completedLabel}
+        onReplace={replaceLabel}
+        onRemove={removeLabel}
+      />,
+    );
+
     return true;
   }
 }
+
+const LabelLog = ({ label, onReplace, onRemove, removed }) => {
+  const actionString = removed ? 'removed label' : 'added label';
+  return (
+    <TerminalSpan>
+      <TerminalType>
+        {actionString}: {label}
+      </TerminalType>
+      <TerminalButton disabled={removed} onClick={onReplace}>
+        Update label
+      </TerminalButton>
+      <TerminalButton disabled={removed} onClick={onRemove}>
+        Remove label
+      </TerminalButton>
+    </TerminalSpan>
+  );
+};
 
 // Highlights a Range object. The Range object MUST NOT span over multiple DOM nodes.
 const highlightSimpleRange = (range) => {
@@ -220,21 +303,31 @@ const highlightSimpleRange = (range) => {
   newNode.setAttribute('data-cookiesynth-style', 'highlight');
   newNode.setAttribute('class', 'highlight');
   range.surroundContents(newNode);
+  return newNode;
 };
 
-const addLabelToRange = (tagStart, tagEnd, range) => {
-  const utils = new RangeUtils(range);
+class LabelIndicator {
+  #rangeUtils;
+  #startIndicator = document.createElement('span');
+  #endIndicator = document.createElement('span');
 
-  const startIndicator = document.createElement('span');
-  startIndicator.setAttribute('data-cookiesynth', tagStart);
-  utils.prepend(startIndicator);
-
-  if (tagEnd) {
-    const endIndicator = document.createElement('span');
-    endIndicator.setAttribute('data-cookiesynth', tagEnd);
-    utils.append(endIndicator);
+  constructor(rangeUtils, tagStart, tagEnd) {
+    this.#rangeUtils = rangeUtils;
+    this.updateTags(tagStart, tagEnd);
   }
 
-  // Highlight the selection
-  utils.apply((range) => highlightSimpleRange(range));
-};
+  updateTags(tagStart, tagEnd) {
+    this.#startIndicator.setAttribute('data-cookiesynth', tagStart || '');
+    this.#endIndicator.setAttribute('data-cookiesynth', tagEnd || '');
+  }
+
+  inject() {
+    this.#rangeUtils.prepend(this.#startIndicator);
+    this.#rangeUtils.append(this.#endIndicator);
+  }
+
+  remove() {
+    this.#startIndicator.replaceWith();
+    this.#endIndicator.replaceWith();
+  }
+}

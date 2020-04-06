@@ -9,13 +9,13 @@ export const theme = createMuiTheme();
 // TODO: use BEM naming conventions for these
 export const useStyles = makeStyles({
   'c-app--full-height': {
-    height: 'calc(100vh - 4px)',
-    'max-height': 'calc(100vh - 4px)',
+    height: 'calc(100vh - 0px)',
+    'max-height': 'calc(100vh - 0px)',
   },
 
   'c-story-panel--full-height': {
-    'max-height': 'calc(85vh - 64px)',
-    'height': 'calc(85vh - 64px)',
+    'max-height': 'calc(82vh - 64px)',
+    'height': 'calc(82vh - 64px)',
   },
 
   'c-fileio-import-button': {
@@ -41,8 +41,8 @@ export const useStyles = makeStyles({
   },
 
   'c-control-panel': {
-    'max-height': 'calc(85vh - 64px)',
-    'height': 'calc(85vh - 64px)',
+    'max-height': 'calc(82vh - 64px)',
+    'height': 'calc(82vh - 64px)',
   },
 
   'c-controls--fill-width': {
@@ -55,8 +55,7 @@ export const useStyles = makeStyles({
   },
 
   'c-controls__hotkey-list': {
-    'height': 'calc(85vh - 340px)',
-    'max-height': 'calc(85vh - 340px)',
+    'max-height': 'calc(82vh - 340px)',
     'overflow-y': 'auto',
     'overflow-x': 'hidden',
   },
@@ -101,20 +100,32 @@ export const useStyles = makeStyles({
   },
 
   'c-terminal': {
-    'padding-top': theme.spacing(2),
-    'margin-left': theme.spacing(2),
-    'margin-right': theme.spacing(2),
-    'max-height': 'calc(15vh - 8px)',
-    'height': 'calc(15vh - 8px)',
-    'overflow': 'auto',
+    'margin-top': theme.spacing(1),
+    'padding-top': theme.spacing(1),
+    'padding-left': theme.spacing(1),
+    'padding-right': theme.spacing(1),
+    'width': 'calc(100% - 8px)',
+    'max-width': 'calc(100% - 16px)',
+    'max-height': 'calc(18vh - 16px)',
     'bottom': '0%',
-    flexWidth: 1,
-
+    'height': 'calc(18vh - 8px)',
+    'overflow': 'auto',
+    'position': 'absolute',
+    'background': '#f8f8f8',
   },
 
   'c-terminal__history': {
     'font-family': "'Inconsolata', monospace",
-    'line-height': 1.0,
+    'line-height': '22px',
   },
+
+  'c-terminal__button': {
+    'font-family': "'Inconsolata', monospace",
+    'padding-top': 0,
+    'padding-bottom': 0,
+    'padding-left': theme.spacing(1),
+    'padding-right': theme.spacing(1),
+    'margin-left': theme.spacing(1),
+  }
 
 });
