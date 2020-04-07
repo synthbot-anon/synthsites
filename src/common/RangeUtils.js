@@ -36,6 +36,14 @@ export default class RangeUtils {
     }
   }
 
+  scrollIntoView() {
+    const span = document.createElement('span');
+    span.id = '__synth_selection';
+    this.#startRange.insertNode(span);
+    span.scrollIntoView(false);
+    span.parentNode.removeChild(span);
+  }
+
   prepend(node) {
     this.#startRange.insertNode(node);
   }
@@ -121,4 +129,10 @@ export default class RangeUtils {
 
     return false;
   }
+}
+
+export const getText = (range) => {
+  const div = document.createElement('div');
+  div.appendChild(range.cloneContents());
+  return div.textContent;
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Typography } from '@material-ui/core';
+import { Link, Typography } from '@material-ui/core';
 
 import {
   isLabelValid,
@@ -9,7 +9,7 @@ import {
   getAllProperties,
   getAllValues,
 } from './common.js';
-import RangeUtils from 'common/RangeUtils.js';
+import RangeUtils, { getText } from 'common/RangeUtils.js';
 import { TerminalType, TerminalButton, TerminalSpan } from 'common/Terminal.js';
 
 const plural = (str) => {
@@ -204,7 +204,7 @@ export default class CookieSynthLabel {
     return result;
   }
 
-  injectLabel(terminal, requestNewLabel) {
+  injectLabel(terminal, selection, requestNewLabel) {
     let completedLabel = this.getCompletedLabel();
 
     if (!isLabelValid(completedLabel)) {
@@ -227,10 +227,23 @@ export default class CookieSynthLabel {
 
     const updateKey = {};
 
+    let contents = getText(this.#range);
+    if (contents.length > 30) {
+      const contentStart = contents.slice(0, 22).replace(/\s+$/, '');
+      const contentEnd = contents.slice(-5).replace(/^\s+/, '');
+      contents = `${contentStart}...${contentEnd}`;
+    }
+
+    const jumpToLabel = () => {
+      utils.scrollIntoView();
+      selection.setRange(this.#range);
+    }
+
     const replaceLabel = () => {
       requestNewLabel(completedLabel, (newLabel) => {
         if (!isLabelValid(newLabel)) {
-          console.log('invalid update');
+          terminal.log('invalid update');
+          return;
         }
 
         [tagStart, tagEnd] = getTagsFromLabel(newLabel);
@@ -239,7 +252,9 @@ export default class CookieSynthLabel {
         updateKey.current = terminal.update(
           updateKey.current,
           <LabelLog
+            contents={contents}
             label={newLabel}
+            onClick={jumpToLabel}
             onReplace={replaceLabel}
             onRemove={removeLabel}
           />,
@@ -262,14 +277,16 @@ export default class CookieSynthLabel {
       updateKey.current = terminal.update(
         updateKey.current,
         <TerminalSpan>
-          <LabelLog label={completedLabel} removed="true" />
+          <LabelLog contents={contents} label={completedLabel} onClick={jumpToLabel} removed={true} />
         </TerminalSpan>,
       );
     };
 
     updateKey.current = terminal.append(
       <LabelLog
+        contents={contents}
         label={completedLabel}
+        onClick={jumpToLabel}
         onReplace={replaceLabel}
         onRemove={removeLabel}
       />,
@@ -279,12 +296,12 @@ export default class CookieSynthLabel {
   }
 }
 
-const LabelLog = ({ label, onReplace, onRemove, removed }) => {
-  const actionString = removed ? 'removed label' : 'added label';
+const LabelLog = ({ contents, label, target, onClick, onReplace, onRemove, removed }) => {
+  const actionString = removed ? 'removed label:' : 'added label:';
   return (
     <TerminalSpan>
-      <TerminalType>
-        {actionString}: {label}
+      <TerminalType onClick={onClick}>
+        {actionString} {contents} => {label}
       </TerminalType>
       <TerminalButton disabled={removed} onClick={onReplace}>
         Update label

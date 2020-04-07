@@ -12,6 +12,7 @@ import CookieSynthLabel, {
   getLabelDescription,
 } from './cookiesynth/CookieSynthLabel.js';
 import { useCreateNewHotkey } from 'common/Hotkeys.js';
+import RangeUtils from 'common/RangeUtils.js';
 
 const Hotkey = ({ shortcut, description, ...other }) => {
   const { classes } = useContext(ThemeContext);
@@ -83,10 +84,10 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
 
   const requestNewLabel = (currentLabel, onComplete) => {
     modifyLabelCallback = onComplete;
-    setOriginalLabel(originalLabel = currentLabel);
+    setOriginalLabel((originalLabel = currentLabel));
     setModifyLabelCallback(() => modifyLabelCallback);
     openModifyLabelModal();
-  }
+  };
 
   const labelSelectionWithTemplate = (template) => {
     saveSelection();
@@ -96,7 +97,7 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
 
     beginRequestMissingProps(pendingLabel.missingProperties)
       .then(() => {
-        if (pendingLabel.injectLabel(terminal, requestNewLabel)) {
+        if (pendingLabel.injectLabel(terminal, selection, requestNewLabel)) {
           setNewHotkeyValue(pendingLabel.completedLabel);
         } else {
           terminal.log('invalid label:', pendingLabel.completedLabel);
@@ -122,11 +123,7 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
       setLastSelection(nextSelection);
       selection.setRange(nextSelection);
 
-      const span = document.createElement('span');
-      span.id = '__synth_selection';
-      nextSelection.insertNode(span);
-      span.scrollIntoView(false);
-      span.parentNode.removeChild(span);
+      new RangeUtils(nextSelection).scrollIntoView();
     }
   };
 
@@ -240,7 +237,7 @@ export const ClipficsLabelsPanel = ({ ...props }) => {
             closeModifyLabelModal();
           }}
           value={originalLabel}
-          label="Modify label"
+          label="Update label"
         />
         <CreateNewHotkey hotkeys={hotkeys} onHotkeyAdded={createLabelHotkey} />
       </Grid>

@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState, createRef } from 'react';
-import { Box, Button, Grid, Paper, Typography } from '@material-ui/core';
+import { Box, Button, Link, Grid, Paper, Typography } from '@material-ui/core';
 
 import { ThemeContext } from 'theme.js';
 
@@ -27,10 +27,7 @@ export default class Console {
 
   append(element) {
     const key = (this.nextId++).toString();
-    this.history = [
-      ...this.history,
-      <div key={key}>>{element}</div>,
-    ];
+    this.history = [...this.history, <div key={key}>>{element}</div>];
     this.#onUpdateCallbacks.forEach((updateDisplay) => updateDisplay(this.history));
     return key;
   }
@@ -58,15 +55,27 @@ export default class Console {
   }
 }
 
-export const TerminalType = ({ children, ...other }) => {
+export const TerminalType = ({ onClick, children, ...other }) => {
   const { classes } = useContext(ThemeContext);
+  let Child;
+
+  if (onClick) {
+    Child = () => (
+      <Link color="inherit" href="#" onClick={onClick}>
+        {children}
+      </Link>
+    );
+  } else {
+    Child = () => <TerminalSpan>{children}</TerminalSpan>;
+  }
+
   return (
     <Typography
       display="inline"
       className={classes['c-terminal__history']}
       {...other}
     >
-      {children}
+      <Child />
     </Typography>
   );
 };
