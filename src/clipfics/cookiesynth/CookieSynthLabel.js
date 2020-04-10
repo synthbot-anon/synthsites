@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, Typography } from '@material-ui/core';
 
 import {
@@ -9,7 +9,7 @@ import {
   getAllProperties,
   getAllValues,
 } from './common.js';
-import RangeUtils, { getText } from 'common/RangeUtils.js';
+import RangeUtils from 'common/RangeUtils.js';
 import { TerminalType, TerminalButton, TerminalSpan } from 'common/Terminal.js';
 
 const plural = (str) => {
@@ -214,81 +214,14 @@ export default class CookieSynthLabel {
     const utils = new RangeUtils(this.#range);
 
     // add the label
-    let [tagStart, tagEnd] = getTagsFromLabel(completedLabel);
-    const indicator = new LabelIndicator(utils, tagStart, tagEnd);
+    const indicator = new LabelIndicator(utils, selection, completedLabel);
     indicator.inject();
 
-    // add the highlight
-    const highlightNodes = [];
-    utils.apply((range) => {
-      const newNode = highlightSimpleRange(range);
-      highlightNodes.push(newNode);
-    });
-
-    const updateKey = {};
-
-    let contents = getText(this.#range);
-    if (contents.length > 30) {
-      const contentStart = contents.slice(0, 22).replace(/\s+$/, '');
-      const contentEnd = contents.slice(-5).replace(/^\s+/, '');
-      contents = `${contentStart}...${contentEnd}`;
-    }
-
-    const jumpToLabel = () => {
-      utils.scrollIntoView();
-      selection.setRange(this.#range);
-    }
-
-    const replaceLabel = () => {
-      requestNewLabel(completedLabel, (newLabel) => {
-        if (!isLabelValid(newLabel)) {
-          terminal.log('invalid update');
-          return;
-        }
-
-        [tagStart, tagEnd] = getTagsFromLabel(newLabel);
-        indicator.updateTags(tagStart, tagEnd);
-
-        updateKey.current = terminal.update(
-          updateKey.current,
-          <LabelLog
-            contents={contents}
-            label={newLabel}
-            onClick={jumpToLabel}
-            onReplace={replaceLabel}
-            onRemove={removeLabel}
-          />,
-        );
-
-        completedLabel = newLabel;
-        return completedLabel;
-      });
-
-      return true;
-    };
-
-    const removeLabel = () => {
-      for (let node of highlightNodes) {
-        node.replaceWith(...node.childNodes);
-      }
-
-      indicator.remove();
-
-      updateKey.current = terminal.update(
-        updateKey.current,
-        <TerminalSpan>
-          <LabelLog contents={contents} label={completedLabel} onClick={jumpToLabel} removed={true} />
-        </TerminalSpan>,
-      );
-    };
-
-    updateKey.current = terminal.append(
+    terminal.append(
       <LabelLog
-        contents={contents}
-        label={completedLabel}
-        onClick={jumpToLabel}
-        onReplace={replaceLabel}
-        onRemove={removeLabel}
+        terminal={terminal}
+        indicator={indicator}
+        requestNewLabel={requestNewLabel}
       />,
     );
 
@@ -296,19 +229,68 @@ export default class CookieSynthLabel {
   }
 }
 
-const LabelLog = ({ contents, label, target, onClick, onReplace, onRemove, removed }) => {
+const LabelLink = ({ contents, label, onClick, removed }) => {
   const actionString = removed ? 'removed label:' : 'added label:';
   return (
+    <TerminalType onClick={onClick}>
+      {actionString} {contents} => {label}
+    </TerminalType>
+  );
+};
+
+const LabelControls = ({ onReplace, onRemove, disabled }) => {
+  return (
     <TerminalSpan>
-      <TerminalType onClick={onClick}>
-        {actionString} {contents} => {label}
-      </TerminalType>
-      <TerminalButton disabled={removed} onClick={onReplace}>
+      <TerminalButton disabled={disabled} onClick={onReplace}>
         Update label
       </TerminalButton>
-      <TerminalButton disabled={removed} onClick={onRemove}>
+      <TerminalButton disabled={disabled} onClick={onRemove}>
         Remove label
       </TerminalButton>
+    </TerminalSpan>
+  );
+};
+
+const LabelLog = ({ terminal, indicator, requestNewLabel }) => {
+  const [indicatorState, setIndicatorState] = useState(0);
+  const [disabled, setDisabled] = useState(false);
+
+  const jumpToLabel = () => {
+    indicator.select();
+  };
+
+  const replaceLabel = () => {
+    requestNewLabel(indicator.completedLabel, (newLabel) => {
+      if (!isLabelValid(newLabel)) {
+        terminal.log('invalid update');
+        return;
+      }
+
+      indicator.updateLabel(newLabel);
+      setIndicatorState(indicatorState + 1);
+    });
+
+    return true;
+  };
+
+  const removeLabel = () => {
+    indicator.remove();
+    setDisabled(true);
+  };
+
+  return (
+    <TerminalSpan>
+      <LabelLink
+        contents={indicator.getContents()}
+        label={indicator.completedLabel}
+        onClick={() => indicator.select()}
+        removed={disabled}
+      />
+      <LabelControls
+        onReplace={replaceLabel}
+        onRemove={removeLabel}
+        disabled={disabled}
+      />
     </TerminalSpan>
   );
 };
@@ -324,27 +306,63 @@ const highlightSimpleRange = (range) => {
 };
 
 class LabelIndicator {
-  #rangeUtils;
-  #startIndicator = document.createElement('span');
-  #endIndicator = document.createElement('span');
+  rangeUtils;
+  selection;
+  completedLabel;
+  startIndicator = document.createElement('span');
+  endIndicator = document.createElement('span');
+  highlightNodes = [];
 
-  constructor(rangeUtils, tagStart, tagEnd) {
-    this.#rangeUtils = rangeUtils;
+  constructor(rangeUtils, selection, completedLabel) {
+    this.rangeUtils = rangeUtils;
+    this.selection = selection;
+    this.completedLabel = completedLabel;
+
+    const [tagStart, tagEnd] = getTagsFromLabel(completedLabel);
     this.updateTags(tagStart, tagEnd);
   }
 
   updateTags(tagStart, tagEnd) {
-    this.#startIndicator.setAttribute('data-cookiesynth', tagStart || '');
-    this.#endIndicator.setAttribute('data-cookiesynth', tagEnd || '');
+    this.startIndicator.setAttribute('data-cookiesynth', tagStart || '');
+    this.endIndicator.setAttribute('data-cookiesynth', tagEnd || '');
+  }
+
+  updateLabel(newLabel) {
+    const [tagStart, tagEnd] = getTagsFromLabel(newLabel);
+    this.updateTags(tagStart, tagEnd);
+    this.completedLabel = newLabel;
   }
 
   inject() {
-    this.#rangeUtils.prepend(this.#startIndicator);
-    this.#rangeUtils.append(this.#endIndicator);
+    this.rangeUtils.prepend(this.startIndicator);
+    this.rangeUtils.append(this.endIndicator);
+
+    // add the highlight
+    this.rangeUtils.apply((range) => {
+      if (new RangeUtils(range).getText().length == 0) {
+        return;
+      }
+
+      const newNode = highlightSimpleRange(range);
+      this.highlightNodes.push(newNode);
+    });
   }
 
   remove() {
-    this.#startIndicator.replaceWith();
-    this.#endIndicator.replaceWith();
+    this.startIndicator.replaceWith();
+    this.endIndicator.replaceWith();
+
+    for (let node of this.highlightNodes) {
+      node.replaceWith(...node.childNodes);
+    }
+  }
+
+  select() {
+    this.rangeUtils.scrollIntoView();
+    this.rangeUtils.setSelection(this.selection);
+  }
+
+  getContents() {
+    return this.rangeUtils.getText(22, 5);
   }
 }

@@ -6,6 +6,7 @@
  * Wrap a Range object and treat it as a sequence of leaf nodes over a DOM tree.
  */
 export default class RangeUtils {
+  #range;
   #startNode;
   #startOffset;
   #endNode;
@@ -17,7 +18,10 @@ export default class RangeUtils {
   /**
    * @param Range object
    */
-  constructor({ startContainer, startOffset, endContainer, endOffset }) {
+  constructor(range) {
+    const { startContainer, startOffset, endContainer, endOffset } = range;
+
+    this.#range = range;
     this.#startNode = startContainer;
     this.#startOffset = startOffset;
     this.#endNode = endContainer;
@@ -129,10 +133,42 @@ export default class RangeUtils {
 
     return false;
   }
-}
 
-export const getText = (range) => {
-  const div = document.createElement('div');
-  div.appendChild(range.cloneContents());
-  return div.textContent;
+  /**
+   * Return the text contents within range, optionally limiting the number of
+   * characters returned. If the contents don't fit within the limit, the middle
+   * characters are replaced with an ellipsis.
+   *
+   * @param startChars Optional parameter to limit the number of leading characters.
+   * @param endChars Parameter to limit the number of ending characters returned. This
+   * must be provided iff startChars is provided.
+   */
+  getText(startChars, endChars) {
+    const div = document.createElement('div');
+    div.appendChild(this.#range.cloneContents());
+    const contents = div.textContent;
+
+    if (!startChars) {
+      return contents;
+    }
+
+    if (!endChars) {
+      throw new Error('cannot use startChars without endChars');
+    }
+
+    // start + end + ellipsis length
+    const maxChars = startChars + endChars + 3;
+
+    if (contents.length <= maxChars) {
+      return contents;
+    }
+
+    const contentStart = contents.slice(0, startChars).replace(/\s+$/, '');
+    const contentEnd = contents.slice(-endChars).replace(/^\s+/, '');
+    return `${contentStart}...${contentEnd}`;
+  }
+
+  setSelection(containerSelection) {
+    containerSelection.setRange(this.#range);
+  }
 }
