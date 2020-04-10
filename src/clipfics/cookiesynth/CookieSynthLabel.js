@@ -1,6 +1,4 @@
 import React, { useState } from 'react';
-import { Link, Typography } from '@material-ui/core';
-
 import {
   isLabelValid,
   getTagsFromLabel,
@@ -255,10 +253,6 @@ const LabelLog = ({ terminal, indicator, requestNewLabel }) => {
   const [indicatorState, setIndicatorState] = useState(0);
   const [disabled, setDisabled] = useState(false);
 
-  const jumpToLabel = () => {
-    indicator.select();
-  };
-
   const replaceLabel = () => {
     requestNewLabel(indicator.completedLabel, (newLabel) => {
       if (!isLabelValid(newLabel)) {
@@ -339,7 +333,7 @@ class LabelIndicator {
 
     // add the highlight
     this.rangeUtils.apply((range) => {
-      if (new RangeUtils(range).getText().length == 0) {
+      if (new RangeUtils(range).getText().length === 0) {
         return;
       }
 

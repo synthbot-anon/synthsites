@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState, createRef } from 'react';
-import { Box, Button, Link, Grid, Paper, Typography } from '@material-ui/core';
+import { Button, Link, Paper, Typography } from '@material-ui/core';
 
 import { ThemeContext } from 'theme.js';
 
