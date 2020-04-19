@@ -10,7 +10,7 @@ const CompletableTextFieldComponent = ({ inputRef, onComplete, value, ...other }
 
     return () => {
       inputRef.setDisplayValue = null;
-    }
+    };
   }, [inputRef]);
 
   useEffect(() => {

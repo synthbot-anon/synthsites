@@ -2,29 +2,28 @@
  * Main entry point for the frontend.
  */
 
-import React, { useState, createRef, useContext } from 'react';
+import React, { useState, useEffect, createRef, useContext } from 'react';
 
 import {
   AppBar,
   Button,
   Grid,
   IconButton,
-  Paper,
   Toolbar,
   Typography,
+  Box,
+  Tab,
+  Tabs,
 } from '@material-ui/core';
 import MenuIcon from '@material-ui/icons/Menu';
 
 import { ThemeContext, useStyles, theme } from './theme.js';
 import { ClipficsContext } from './tasks.js';
-import Hotkeys from 'common/Hotkeys.js';
 import Terminal from 'common/Terminal.js';
-import ContainerSelection from 'common/ContainerSelection.js';
 import FileImportButton from 'common/FileImportButton.js';
-import ClipficsControlPanel from 'clipfics/ClipficsControlPanel.js';
-import CookieSynthPaper from 'clipfics/cookiesynth/CookieSynthPaper.js';
-import HtmlNavigator from 'common/HtmlNavigator.js';
 import useInitializer from 'common/useInitializer.js';
+import useClipficsTask from 'tasks/useClipficsTask.js';
+import useForceUpdate from 'common/useForceUpdate.js';
 
 /**
  * Navigation bar at the top of the site. This doesn't serve any functiona purpose at
@@ -54,49 +53,109 @@ const CookieSynthExport = () => {
   const download = () => {
     const storyData = document.getElementById('js-story-sheet').innerHTML;
     const storyBlob = new Blob([storyData], {
-      'type': 'text/html'
+      type: 'text/html',
     });
 
     const a = document.createElement('a');
     a.setAttribute('href', window.URL.createObjectURL(storyBlob));
-    a.download = "cookiesynth - story.html";
+    a.download = 'cookiesynth - story.html';
     a.click();
-
   };
-  return <Button className={classes['c-fileio-export-button']} onClick={download}>Export labels</Button>;
+  return (
+    <Button className={classes['c-fileio-export-button']} onClick={download}>
+      Export labels
+    </Button>
+  );
+};
+
+/**
+ * Stub class for displaying a tab panel. This is used for the Labels, Shortcuts,
+ * and Search panels.
+ */
+const TabPanel = ({ children, value, index, ...other }) => (
+  <Typography component="div" hidden={value !== index} {...other}>
+    <Box p={3}>{children}</Box>
+  </Typography>
+);
+
+const useTabs = () => {
+  const [context] = useState(() => {
+    return {
+      tabLabels: [],
+      tabPanels: [],
+    };
+  });
+
+  const addTab = (label, panel) => {
+    context.tabLabels.push(label);
+    context.tabPanels.push(panel);
+
+    if (context.updateTabDisplay) {
+      context.updateTabDisplay();
+    }
+  };
+
+  const TabBar = (props) => {
+    const [selectedTab, setSelectedTab] = useState(0);
+    const { forceUpdate } = useForceUpdate();
+
+    useEffect(() => {
+      context.updateTabDisplay = forceUpdate;
+      return () => {
+        context.updateTabDisplay = null;
+      };
+    });
+
+    const onTabSelected = (event, newValue) => {
+      setSelectedTab(newValue);
+    };
+
+    return (
+      <div>
+        <Toolbar>
+          <Tabs value={selectedTab} onChange={onTabSelected}>
+            {context.tabLabels.map((label, index) => (
+              <Tab key={index} label={label} />
+            ))}
+          </Tabs>
+        </Toolbar>
+
+        {context.tabPanels.map((Panel, index) => (
+          <TabPanel key={index} value={selectedTab} index={index}>
+            <Panel />
+          </TabPanel>
+        ))}
+      </div>
+    );
+  };
+
+  return { TabBar, addTab };
 };
 
 /**
  * Main app.
  */
 const App = () => {
-  const [storyContents, setStoryContents] = useState('Load a story');
-
+  console.log('reloading app');
   const themeContext = {
     classes: useStyles(theme),
   };
+
   const classes = themeContext.classes;
+  const terminal = new Terminal();
+  const { TabBar, addTab } = useTabs();
 
-  let [taskContext, setTaskContext] = useState();
+  terminal.log('hello, anonymous.');
+  terminal.log('do you need help using this interface?');
 
-  const storyContainerRef = createRef();
+  const TerminalDisplay = terminal.Component;
+  const { taskContext, loadResource, ResourceView, tabs } = useClipficsTask(terminal);
 
-  useInitializer(() => {
-    taskContext = {};
-    taskContext.hotkeys = new Hotkeys();
-    taskContext.storyContainerRef = storyContainerRef;
-    taskContext.selection = new ContainerSelection(storyContainerRef);
-    taskContext.terminal = new Terminal();
-    taskContext.storyNavigator = new HtmlNavigator(storyContainerRef);
+  for (let { label, panel } of tabs) {
+    addTab(label, panel);
+  }
 
-    taskContext.terminal.log("hello, anonymous.");
-    taskContext.terminal.log("do you need help using this interface?");
-
-    setTaskContext(taskContext);
-  });
-
-  taskContext.hotkeys.useHotkeyListener();
-  const TerminalDisplay = taskContext.terminal.Component;
+  addTab('Files', () => <div />);
 
   return (
     <ThemeContext.Provider value={themeContext}>
@@ -105,33 +164,23 @@ const App = () => {
         <ClipficsContext.Provider value={taskContext}>
           <Grid container spacing={2}>
             <Grid item xs={7} className={classes['c-story-panel--full-height']}>
-              <div
-                ref={taskContext.storyContainerRef}
-                className={classes['c-story-panel__container']}
-              >
-                <CookieSynthPaper
-                  id="js-story-sheet"
-                  className={classes['c-story-panel__paper']}
-                >
-                  {storyContents}
-                </CookieSynthPaper>
-              </div>
+              <ResourceView />
             </Grid>
             <Grid item xs={5} className={classes['c-control-panel']}>
-              <ClipficsControlPanel />
+              <TabBar />
               <Grid container>
-                <FileImportButton onFileLoaded={(contents) => {
-                  taskContext.terminal.log('loading fic');
-                  setStoryContents(contents);
-                }} />
+                <FileImportButton
+                  onFileLoaded={(contents) => {
+                    terminal.log('loading fic');
+                    loadResource(contents);
+                  }}
+                />
                 <CookieSynthExport />
               </Grid>
             </Grid>
           </Grid>
         </ClipficsContext.Provider>
-        <Paper>
-          <TerminalDisplay />
-        </Paper>
+        <TerminalDisplay />
       </div>
     </ThemeContext.Provider>
   );

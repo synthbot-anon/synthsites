@@ -324,7 +324,7 @@ const nextLeft = (node) => {
  * @param offset Character offset if node is of type Text, Comment, or CDataSection.
  * Child node index otherwise.
  */
-const getSectionOffset = (section, node, offset) => {
+export const getSectionOffset = (section, node, offset) => {
   let runningOffset = 0;
   let currentNode = leftMost(section);
 

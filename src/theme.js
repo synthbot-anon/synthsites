@@ -15,7 +15,7 @@ export const useStyles = makeStyles({
 
   'c-story-panel--full-height': {
     'max-height': 'calc(82vh - 64px)',
-    'height': 'calc(82vh - 64px)',
+    height: 'calc(82vh - 64px)',
   },
 
   'c-fileio-import-button': {
@@ -42,7 +42,7 @@ export const useStyles = makeStyles({
 
   'c-control-panel': {
     'max-height': 'calc(82vh - 64px)',
-    'height': 'calc(82vh - 64px)',
+    height: 'calc(82vh - 64px)',
   },
 
   'c-controls--fill-width': {
@@ -104,14 +104,14 @@ export const useStyles = makeStyles({
     'padding-top': theme.spacing(1),
     'padding-left': theme.spacing(1),
     'padding-right': theme.spacing(1),
-    'width': 'calc(100% - 8px)',
+    width: 'calc(100% - 8px)',
     'max-width': 'calc(100% - 16px)',
     'max-height': 'calc(18vh - 16px)',
-    'bottom': '0%',
-    'height': 'calc(18vh - 8px)',
-    'overflow': 'auto',
-    'position': 'absolute',
-    'background': '#f8f8f8',
+    bottom: '0%',
+    height: 'calc(18vh - 8px)',
+    overflow: 'auto',
+    position: 'absolute',
+    background: '#f8f8f8',
   },
 
   'c-terminal__history': {
@@ -126,6 +126,32 @@ export const useStyles = makeStyles({
     'padding-left': theme.spacing(1),
     'padding-right': theme.spacing(1),
     'margin-left': theme.spacing(1),
-  }
+  },
 
+  'o-title-box--compact': {
+    'padding-bottom': '16px',
+    '& > div': {
+      padding: '8px',
+    },
+  },
+
+  'c-metareplay-box': {
+    'min-width': '67%',
+    'max-height': 'calc(83vh - 340px)',
+    'overflow-y': 'auto',
+    'overflow-x': 'hidden',
+    'padding-top': '8px',
+    '& > div': {
+      'min-width': '67%',
+      'overflow-x': 'visible',
+      'overflow-y': 'visible',
+    },
+    '& label': {
+      color: '#000000',
+    },
+  },
+
+  'c-metareplay-box__assignment': {
+    color: 'rgba(0, 0, 0, 0.54)',
+  },
 });

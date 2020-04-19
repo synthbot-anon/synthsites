@@ -7,6 +7,9 @@ const OPEN_REGEX = new RegExp(
 const MISSING_VALUES_REGEX = new RegExp(`(${KEYWORD})\\s*=\\s*"(\\?)"`, 'g');
 const ALL_PROPERTIES_REGEX = new RegExp(`(${KEYWORD})\\s*=\\s*"${VALUE}"`, 'g');
 const ALL_VALUES_REGEX = new RegExp(`(?:${KEYWORD})\\s*=\\s*"(${VALUE})"`, 'g');
+const SPLIT_ASSIGNMENT = new RegExp(`^\\s*(${SEGTYPE})\\s*=\\s*"(${VALUE})"\\s*$`);
+
+const CLOSE_REGEX = new RegExp(`^\\s*\\/(${KEYWORD})\\s*$`);
 
 export const isLabelValid = (label) => {
   const result = OPEN_REGEX.test(label);
@@ -39,4 +42,30 @@ export const getAllProperties = (label) => {
 
 export const getAllValues = (label) => {
   return label.matchAll(ALL_VALUES_REGEX);
+};
+
+export const splitAssignment = (label) => {
+  const match = SPLIT_ASSIGNMENT.exec(label);
+  const [, segtype, value] = match;
+  return [segtype, value];
+};
+
+export const getCookieSynthOpenLabelType = (label) => {
+  const openMatch = OPEN_REGEX.exec(label);
+  if (openMatch) {
+    const [, keyword] = openMatch;
+    return keyword;
+  }
+
+  return null;
+};
+
+export const getCookieSynthCloseLabelType = (label) => {
+  const closeMatch = CLOSE_REGEX.exec(label);
+  if (closeMatch) {
+    const [, keyword] = closeMatch;
+    return keyword;
+  }
+
+  return null;
 };

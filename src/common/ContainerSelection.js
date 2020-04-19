@@ -7,13 +7,22 @@ export default class ContainerSelection {
     this.#containerRef = containerRef;
   }
 
-  useRange() {
+  useRange(allUpdates) {
     const [range, setRange] = useState(this.getRange());
 
     useEffect(() => {
-      document.addEventListener('selectionchange', () => {
-        setRange(this.getRange());
-      });
+      const listener = () => {
+        const newRange = this.getRange();
+        if (allUpdates || newRange) {
+          setRange(newRange);
+        }
+      };
+
+      document.addEventListener('selectionchange', listener);
+
+      return () => {
+        document.removeEventListener('selectionchange', listener);
+      };
     });
 
     return range;
@@ -63,8 +72,8 @@ export const useSelectionCache = (selection) => {
   let [savedRange, setSavedRange] = useState(null);
 
   const saveSelection = () => {
-    setSavedRange(savedRange = selection.getRange());
-  }
+    setSavedRange((savedRange = selection.getRange()));
+  };
 
   const restoreSelection = () => {
     if (savedRange === null) {
@@ -72,7 +81,7 @@ export const useSelectionCache = (selection) => {
     }
 
     selection.setRange(savedRange);
-  }
+  };
 
   return { saveSelection, restoreSelection };
-}
+};

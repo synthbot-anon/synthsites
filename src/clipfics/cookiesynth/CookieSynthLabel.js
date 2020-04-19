@@ -9,6 +9,7 @@ import {
 } from './common.js';
 import RangeUtils from 'common/RangeUtils.js';
 import { TerminalType, TerminalButton, TerminalSpan } from 'common/Terminal.js';
+import { Meta } from '../MetaReplay.js';
 
 const plural = (str) => {
   if (str.endsWith('s')) {
@@ -155,31 +156,35 @@ export const getLabelDescription = (partialLabel) => {
 };
 
 export default class CookieSynthLabel {
-  missingProperties = [];
-  #propertyOffsets = [];
+  missingTemplateProperties = [];
+  #templatePropertyOffsets = [];
   providedValues = [];
-  #label;
+  #template;
   #range;
   completedLabel;
 
-  constructor(range, label) {
-    const missingValueMatches = getMissingValues(label);
+  constructor(range, template) {
+    const missingValueMatches = getMissingValues(template);
 
     for (let item of missingValueMatches) {
       const context = item[1];
       const offset = item.index + item[0].search('"?"') + 1;
-      this.#propertyOffsets.push([context, offset]);
-      this.missingProperties.push(context);
+      this.#templatePropertyOffsets.push([context, offset]);
+      this.missingTemplateProperties.push(context);
     }
 
     this.#range = range;
-    this.#label = label;
+    this.#template = template;
   }
 
   setNextValue(value) {
     const nextIndex = this.providedValues.length;
-    const [, offset] = this.#propertyOffsets[nextIndex];
+    const [, offset] = this.#templatePropertyOffsets[nextIndex];
     this.providedValues.push([value, offset]);
+  }
+
+  hasMissingValues() {
+    return this.missingTemplateProperties.length !== this.providedValues.length;
   }
 
   getCompletedLabel() {
@@ -187,7 +192,7 @@ export default class CookieSynthLabel {
       return this.completedLabel;
     }
 
-    let originalLabel = this.#label;
+    let originalLabel = this.#template;
     let result = '';
     let lastOffset = 0;
     for (let i = 0; i < this.providedValues.length; i++) {
@@ -202,7 +207,8 @@ export default class CookieSynthLabel {
     return result;
   }
 
-  injectLabel(terminal, selection, requestNewLabel) {
+  injectLabel(clipfics) {
+    const { terminal, selection, requestNewLabel, metaReplay } = clipfics;
     let completedLabel = this.getCompletedLabel();
 
     if (!isLabelValid(completedLabel)) {
@@ -215,10 +221,14 @@ export default class CookieSynthLabel {
     const indicator = new LabelIndicator(utils, selection, completedLabel);
     indicator.inject();
 
+    const metaTransition = new MetaTransition(metaReplay, this.#range);
+    metaTransition.apply(completedLabel);
+
     terminal.append(
       <LabelLog
         terminal={terminal}
         indicator={indicator}
+        metaTransition={metaTransition}
         requestNewLabel={requestNewLabel}
       />,
     );
@@ -249,7 +259,7 @@ const LabelControls = ({ onReplace, onRemove, disabled }) => {
   );
 };
 
-const LabelLog = ({ terminal, indicator, requestNewLabel }) => {
+const LabelLog = ({ terminal, indicator, metaTransition, requestNewLabel }) => {
   const [indicatorState, setIndicatorState] = useState(0);
   const [disabled, setDisabled] = useState(false);
 
@@ -261,6 +271,7 @@ const LabelLog = ({ terminal, indicator, requestNewLabel }) => {
       }
 
       indicator.updateLabel(newLabel);
+      metaTransition.apply(newLabel);
       setIndicatorState(indicatorState + 1);
     });
 
@@ -269,6 +280,7 @@ const LabelLog = ({ terminal, indicator, requestNewLabel }) => {
 
   const removeLabel = () => {
     indicator.remove();
+    metaTransition.remove();
     setDisabled(true);
   };
 
@@ -358,5 +370,59 @@ class LabelIndicator {
 
   getContents() {
     return this.rangeUtils.getText(22, 5);
+  }
+}
+
+const getMetaLabelMap = (label) => {
+  const result = new Map();
+
+  const properties = matchesToString(getAllProperties(label));
+  const values = matchesToString(getAllValues(label));
+
+  const targetKey = `${properties[0]}="${values[0]}"`;
+  const targetMap = new Map();
+  result.set(targetKey, targetMap);
+
+  for (let i = 1; i < properties.length; i++) {
+    const assignmentProp = properties[i];
+    const assignmentValue = values[i];
+    targetMap.set(assignmentProp, assignmentValue);
+  }
+
+  return result;
+};
+
+class MetaTransition {
+  metaReplay;
+  range;
+  label;
+  isMeta = false;
+  meta;
+
+  constructor(metaReplay, range) {
+    this.metaReplay = metaReplay;
+    this.range = range;
+  }
+
+  apply(newLabel) {
+    if (this.isMeta) {
+      this.metaReplay.remove(this.range, this.meta);
+    }
+
+    if (getTypeFromLabel(newLabel) === 'meta') {
+      this.isMeta = true;
+
+      const newMetaMap = getMetaLabelMap(newLabel);
+      const newMeta = new Meta(newMetaMap);
+      this.meta = newMeta;
+
+      this.metaReplay.add(this.range, newMeta);
+    }
+  }
+
+  remove() {
+    if (this.meta) {
+      this.metaReplay.remove(this.range, this.meta);
+    }
   }
 }

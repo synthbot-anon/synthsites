@@ -23,34 +23,30 @@ const Hotkey = ({ shortcut, description, ...other }) => {
 };
 
 const useDisplayableHotkeys = () => {
-  const { hotkeys } = useClipfics();
+  const clipfics = useClipfics();
   const [existingHotkeyActions] = useState({});
   let [hotkeyDisplays, setHotkeyDisplays] = useState([]);
 
-  hotkeys.useHotkeys();
+  clipfics.hotkeys.useHotkeys();
 
   const registerHotkey = (shortcut, action, display) => {
     if (shortcut in existingHotkeyActions) {
       const existingAction = existingHotkeyActions[shortcut];
-      hotkeys.unregisterHotkey(shortcut, existingAction);
+      clipfics.hotkeys.unregisterHotkey(shortcut, existingAction);
       hotkeyDisplays = hotkeyDisplays.filter((x) => x['key'] !== shortcut);
     }
 
-    hotkeys.registerHotkey(shortcut, action);
+    clipfics.hotkeys.registerHotkey(shortcut, action);
     setHotkeyDisplays((hotkeyDisplays = [display, ...hotkeyDisplays]));
     existingHotkeyActions[shortcut] = action;
   };
-
-  useInitializer(() => {});
 
   return { registerHotkey, hotkeyDisplays };
 };
 
 export default () => {
-  const { classes } = useContext(ThemeContext);
-
-  const { hotkeys, selection, terminal, storyNavigator } = useClipfics();
-  const { saveSelection, restoreSelection } = useSelectionCache(selection);
+  const clipfics = useClipfics();
+  const { saveSelection, restoreSelection } = useSelectionCache(clipfics.selection);
   const {
     currentItem: currentMissingProp,
     hasNext: hasMissingProps,
@@ -90,12 +86,15 @@ export default () => {
   const labelSelectionWithTemplate = (template) => {
     saveSelection();
 
-    pendingLabel = new CookieSynthLabel(selection.getRange(), template);
+    pendingLabel = new CookieSynthLabel(clipfics.selection.getRange(), template);
     setPendingLabel(pendingLabel);
 
-    beginRequestMissingProps(pendingLabel.missingProperties)
+    beginRequestMissingProps(pendingLabel.missingTemplateProperties)
       .then(() => {
-        if (pendingLabel.injectLabel(terminal, selection, requestNewLabel)) {
+        const { terminal, selection, metaReplay } = clipfics;
+        if (
+          pendingLabel.injectLabel(clipfics)
+        ) {
           setNewHotkeyValue(pendingLabel.completedLabel);
         } else {
           terminal.log('invalid label:', pendingLabel.completedLabel);
@@ -103,7 +102,6 @@ export default () => {
         restoreSelection();
       })
       .catch((error) => {
-        console.log(error);
         setPendingLabel(null);
         stopRequestingProps();
         restoreSelection();
@@ -111,24 +109,24 @@ export default () => {
   };
 
   const selectNext = (getNextRange) => {
-    let currentSelection = selection.getRange();
+    let currentSelection = clipfics.selection.getRange();
     if (!currentSelection) {
-      currentSelection = lastSelection || storyNavigator.getInitialRange();
+      currentSelection = lastSelection || clipfics.storyNavigator.getInitialRange();
     }
 
     const nextSelection = getNextRange(currentSelection);
     if (nextSelection) {
       setLastSelection(nextSelection);
-      selection.setRange(nextSelection);
+      clipfics.selection.setRange(nextSelection);
 
       new RangeUtils(nextSelection).scrollIntoView();
     }
   };
 
   const addCustomLabel = () => {
-    const selectionRange = selection.getRange();
+    const selectionRange = clipfics.selection.getRange();
     if (!selectionRange) {
-      terminal.log('you need to select some story text first');
+      clipfics.terminal.log('you need to select some story text first');
       return;
     }
 
@@ -137,9 +135,9 @@ export default () => {
   };
 
   const addTemplatedLabel = (template) => () => {
-    const selectionRange = selection.getRange();
+    const selectionRange = clipfics.selection.getRange();
     if (!selectionRange) {
-      terminal.log('you need to select some story text first');
+      clipfics.terminal.log('you need to select some story text first');
       return;
     }
 
@@ -162,7 +160,10 @@ export default () => {
   const createNextSelectionHotkey = (shortcut, regex, description) => {
     createHotkey(
       shortcut,
-      () => selectNext((current) => storyNavigator.getNextPhrase(current, regex)),
+      () =>
+        selectNext((current) =>
+          clipfics.storyNavigator.getNextPhrase(current, regex),
+        ),
       description,
     );
   };
@@ -170,7 +171,10 @@ export default () => {
   const createPrevSelectionHotkey = (shortcut, regex, description) => {
     createHotkey(
       shortcut,
-      () => selectNext((current) => storyNavigator.getPreviousPhrase(current, regex)),
+      () =>
+        selectNext((current) =>
+          clipfics.storyNavigator.getPreviousPhrase(current, regex),
+        ),
       description,
     );
   };
@@ -196,9 +200,12 @@ export default () => {
     createHotkey('!', createHotkeyHotkey, 'Create a new hotkey');
   });
 
-  const HotkeyDisplay = () => (
-    <div className={classes['c-controls__hotkey-list']} children={hotkeyDisplays} />
-  );
+  const HotkeyDisplay = () => {
+    const { classes } = useContext(ThemeContext);
+    return (
+      <div className={classes['c-controls__hotkey-list']} children={hotkeyDisplays} />
+    );
+  };
 
   const HotkeyModals = () => (
     <React.Fragment>
@@ -240,8 +247,9 @@ export default () => {
   );
 
   const CreateHotkey = () => (
-    <CreateNewHotkey hotkeys={hotkeys} onHotkeyAdded={createLabelHotkey} />
+    <CreateNewHotkey hotkeys={clipfics.hotkeys} onHotkeyAdded={createLabelHotkey} />
   );
 
-  return { HotkeyDisplay, HotkeyModals, CreateHotkey };
+  clipfics.requestNewLabel = requestNewLabel;
+  return { HotkeyDisplay, HotkeyModals, CreateHotkey, requestNewLabel };
 };
