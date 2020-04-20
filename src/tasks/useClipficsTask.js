@@ -60,7 +60,6 @@ const HotkeyPanel = () => {
 };
 
 export default (terminal) => {
-  const [resource, setResource] = useState();
   const [taskContext] = useState(() => {
     const result = {};
     result.hotkeys = new Hotkeys();

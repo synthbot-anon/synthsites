@@ -1,4 +1,4 @@
-import React, { createRef, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Paper } from '@material-ui/core';
 import sanitizeHtml from 'sanitize-html';
 import { useClipfics } from 'tasks.js';
@@ -7,10 +7,9 @@ import {
   getCookieSynthCloseLabelType,
 } from 'clipfics/cookiesynth/common.js';
 import CookieSynthLabel from 'clipfics/cookiesynth/CookieSynthLabel.js';
-import RangeUtils from 'common/RangeUtils.js';
 
 const reloadLabels = (clipfics) => {
-  const { terminal, metaReplay } = clipfics;
+  const { terminal } = clipfics;
   const div = clipfics.storyContainerRef.current;
   const pendingLabels = new Map();
 
@@ -50,8 +49,6 @@ const reloadLabels = (clipfics) => {
       const range = new Range();
 
       console.log((start.parentNode.childNodes, start));
-
-      const indexOf = Array.prototype.indexOf;
 
       const startContainer = start.nextSibling;
       const startOffset = 0;

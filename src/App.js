@@ -2,7 +2,7 @@
  * Main entry point for the frontend.
  */
 
-import React, { useState, useEffect, createRef, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 
 import {
   AppBar,
@@ -21,7 +21,6 @@ import { ThemeContext, useStyles, theme } from './theme.js';
 import { ClipficsContext } from './tasks.js';
 import Terminal from 'common/Terminal.js';
 import FileImportButton from 'common/FileImportButton.js';
-import useInitializer from 'common/useInitializer.js';
 import useClipficsTask from 'tasks/useClipficsTask.js';
 import useForceUpdate from 'common/useForceUpdate.js';
 

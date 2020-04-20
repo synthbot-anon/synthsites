@@ -62,7 +62,20 @@ export const useStyles = makeStyles({
 
   'c-hotkey__paper': {
     padding: theme.spacing(1),
-    width: '100%',
+    'line-height': '22px',
+  },
+
+  'c-hotkey--enabled': {
+    color: 'black',
+  },
+
+  'c-hotkey--disabled': {
+    color: 'gray',
+  },
+
+  'c-hotkey__restore-button': {
+    'padding-top': 0,
+    'padding-bottom': 0,
   },
 
   'c-labelmodal__container': {

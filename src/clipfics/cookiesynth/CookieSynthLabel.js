@@ -10,11 +10,6 @@ import {
 import RangeUtils from 'common/RangeUtils.js';
 import { TerminalType, TerminalButton, TerminalSpan } from 'common/Terminal.js';
 import { Meta } from '../MetaReplay.js';
-import {
-  getSectionOffset,
-  getSectionNode,
-  getSectionRange,
-} from 'common/HtmlNavigator.js';
 
 const plural = (str) => {
   if (str.endsWith('s')) {
@@ -305,9 +300,6 @@ const LabelLog = ({ terminal, indicator, metaTransition, requestNewLabel }) => {
     </TerminalSpan>
   );
 };
-
-// Highlights a Range object. The Range object MUST NOT span over multiple DOM nodes.
-const highlightSimpleRange = (range, highlightClass) => {};
 
 class LabelIndicator {
   rangeUtils;

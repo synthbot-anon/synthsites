@@ -65,14 +65,16 @@ export default class Hotkeys {
 
     previousActions.push(action);
     this.lastUpdate += 1;
+    this.watchers.forEach((f) => f(this.lastUpdate));
   }
 
   unregisterHotkey(shortcut, action) {
     this.#hotkeys[shortcut] = this.#hotkeys[shortcut].filter((x) => x !== action);
     this.lastUpdate += 1;
+    this.watchers.forEach((f) => f(this.lastUpdate));
   }
 
-  useHotkeys() {
+  useHotkeyUpdateListener() {
     const [, setLastUpdate] = useState(this.lastUpdate);
 
     useEffect(() => {
@@ -81,8 +83,6 @@ export default class Hotkeys {
         this.watchers = this.watchers.filter((x) => x !== setLastUpdate);
       };
     }, []);
-
-    return this.#hotkeys;
   }
 }
 
@@ -149,7 +149,7 @@ const CreateNewHotkeyComponent = ({
 
   useEffect(() => {
     inputRef.requestHotkeyFor = requestHotkeyFor;
-  }, [inputRef]);
+  });
 
   const onShortcutCaptured = (shortcut, label) => {
     setCaptureShortcut(false);

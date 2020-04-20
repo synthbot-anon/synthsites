@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useRef } from 'react';
 import { ThemeContext } from 'theme.js';
 import { useClipfics } from 'tasks.js';
 import TextFieldModal from 'common/TextFieldModal.js';
@@ -12,37 +12,133 @@ import CookieSynthLabel, {
 import { isLabelValid } from './cookiesynth/common.js';
 import { useCreateNewHotkey } from 'common/Hotkeys.js';
 import RangeUtils from 'common/RangeUtils.js';
+import { Button, Typography } from '@material-ui/core';
 
-const Hotkey = ({ shortcut, description, ...other }) => {
+const Hotkey = ({ hotkeys, shortcut, description, disabled, restore }) => {
   const { classes } = useContext(ThemeContext);
+  const classNamePaper = classes['c-hotkey__paper'];
+  const classNameDisabled = classes[`c-hotkey--${disabled ? 'disabled' : 'enabled'}`];
+  const classNames = `${classNamePaper} ${classNameDisabled}`;
+
   return (
-    <div
-      key={shortcut}
-      className={classes['c-hotkey__paper']}
-    >{`${shortcut} 🠖 ${description}`}</div>
+    <div>
+      <span className={classNames}>{`${shortcut} 🠖 ${description}`}</span>
+      {disabled && (
+        <Button
+          className={classes['c-hotkey__restore-button']}
+          variant="outlined"
+          size="small"
+          color="primary"
+          disabled={!disabled}
+          onClick={restore}
+        >
+          Restore
+        </Button>
+      )}
+    </div>
   );
 };
 
-const useDisplayableHotkeys = () => {
+const HotkeyDisplay = ({
+  hotkeys,
+  enabledHotkeys,
+  disabledHotkeys,
+  restoreHotkey,
+}) => {
+  const { classes } = useContext(ThemeContext);
+  hotkeys.useHotkeyUpdateListener();
+
+  return (
+    <div className={classes['c-controls__hotkey-list']}>
+      {Array.from(enabledHotkeys.entries()).map(([, entry]) => {
+        const [key, shortcut, , description] = entry;
+        return (
+          <Hotkey
+            key={key}
+            hotkeys={hotkeys}
+            shortcut={shortcut}
+            description={description}
+            disabled={false}
+          />
+        );
+      })}
+
+      {Array.from(disabledHotkeys.entries()).map(([key, entry]) => {
+        console.log('disabled:', entry);
+        const [shortcut, action, description] = entry;
+
+        return (
+          <Hotkey
+            key={key}
+            hotkeys={hotkeys}
+            shortcut={shortcut}
+            description={description}
+            disabled={true}
+            restore={() => restoreHotkey(key)}
+          />
+        );
+      })}
+    </div>
+  );
+};
+
+const useHotkeyDisplay = () => {
   const clipfics = useClipfics();
-  const [existingHotkeyActions] = useState({});
-  let [hotkeyDisplays, setHotkeyDisplays] = useState([]);
+  const state = useRef({
+    nextHotkeyIndex: 0,
+    enabledHotkeys: new Map(),
+    disabledHotkeys: new Map(),
+  });
 
-  clipfics.hotkeys.useHotkeys();
-
-  const registerHotkey = (shortcut, action, display) => {
-    if (shortcut in existingHotkeyActions) {
-      const existingAction = existingHotkeyActions[shortcut];
-      clipfics.hotkeys.unregisterHotkey(shortcut, existingAction);
-      hotkeyDisplays = hotkeyDisplays.filter((x) => x['key'] !== shortcut);
+  const registerHotkey = (shortcut, action, description) => {
+    if (state.current.enabledHotkeys.has(shortcut)) {
+      const [
+        oldKey,
+        oldShortcut,
+        oldAction,
+        oldDescription,
+      ] = state.current.enabledHotkeys.get(shortcut);
+      clipfics.hotkeys.unregisterHotkey(shortcut, oldAction);
+      state.current.disabledHotkeys.set(oldKey, [
+        oldShortcut,
+        oldAction,
+        oldDescription,
+      ]);
     }
 
+    state.current.enabledHotkeys.set(shortcut, [
+      state.current.nextHotkeyIndex++,
+      shortcut,
+      action,
+      description,
+    ]);
+
     clipfics.hotkeys.registerHotkey(shortcut, action);
-    setHotkeyDisplays((hotkeyDisplays = [display, ...hotkeyDisplays]));
-    existingHotkeyActions[shortcut] = action;
   };
 
-  return { registerHotkey, hotkeyDisplays };
+  const restoreHotkey = (key) => {
+    const [shortcut, action, description] = state.current.disabledHotkeys.get(key);
+    const [oldKey, oldShortcut, oldAction, oldDescription] = state.current.enabledHotkeys.get(shortcut);
+    clipfics.hotkeys.unregisterHotkey(shortcut, oldAction);
+    state.current.disabledHotkeys.delete(key);
+    state.current.enabledHotkeys.set(shortcut, [key, shortcut, action, description]);
+    state.current.disabledHotkeys.set(oldKey, [oldShortcut, oldAction, oldDescription]);
+    clipfics.hotkeys.registerHotkey(shortcut, action);
+  };
+
+  const Display = () => (
+    <HotkeyDisplay
+      hotkeys={clipfics.hotkeys}
+      enabledHotkeys={state.current.enabledHotkeys}
+      disabledHotkeys={state.current.disabledHotkeys}
+      restoreHotkey={restoreHotkey}
+    />
+  );
+
+  return {
+    HotkeyDisplay: Display,
+    registerHotkey,
+  };
 };
 
 export default () => {
@@ -74,7 +170,7 @@ export default () => {
   let [originalLabel, setOriginalLabel] = useState();
 
   const [lastSelection, setLastSelection] = useState();
-  const { registerHotkey, hotkeyDisplays } = useDisplayableHotkeys();
+  const { HotkeyDisplay, registerHotkey } = useHotkeyDisplay();
   let [pendingLabel, setPendingLabel] = useState();
 
   const requestNewLabel = (currentLabel, onComplete) => {
@@ -92,10 +188,8 @@ export default () => {
 
     beginRequestMissingProps(pendingLabel.missingTemplateProperties)
       .then(() => {
-        const { terminal, selection, metaReplay } = clipfics;
-        if (
-          pendingLabel.injectLabel(clipfics)
-        ) {
+        const { terminal } = clipfics;
+        if (pendingLabel.injectLabel(clipfics)) {
           setNewHotkeyValue(pendingLabel.completedLabel);
         } else {
           terminal.log('invalid label:', pendingLabel.completedLabel);
@@ -146,11 +240,7 @@ export default () => {
   };
 
   const createHotkey = (shortcut, action, description) => {
-    registerHotkey(
-      shortcut,
-      action,
-      <Hotkey key={shortcut} shortcut={shortcut} description={description} />,
-    );
+    registerHotkey(shortcut, action, description);
   };
 
   const createLabelHotkey = (shortcut, labelTemplate) => {
@@ -201,13 +291,6 @@ export default () => {
     createHotkey('!', createHotkeyHotkey, 'Create a new hotkey');
   });
 
-  const HotkeyDisplay = () => {
-    const { classes } = useContext(ThemeContext);
-    return (
-      <div className={classes['c-controls__hotkey-list']} children={hotkeyDisplays} />
-    );
-  };
-
   const HotkeyModals = () => (
     <React.Fragment>
       <TextFieldModal
@@ -248,7 +331,11 @@ export default () => {
   );
 
   const CreateHotkey = () => (
-    <CreateNewHotkey hotkeys={clipfics.hotkeys} onHotkeyAdded={createLabelHotkey} isHotkeyValid={isLabelValid} />
+    <CreateNewHotkey
+      hotkeys={clipfics.hotkeys}
+      onHotkeyAdded={createLabelHotkey}
+      isHotkeyValid={isLabelValid}
+    />
   );
 
   clipfics.requestNewLabel = requestNewLabel;
