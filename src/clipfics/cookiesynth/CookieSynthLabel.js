@@ -307,12 +307,7 @@ const LabelLog = ({ terminal, indicator, metaTransition, requestNewLabel }) => {
 };
 
 // Highlights a Range object. The Range object MUST NOT span over multiple DOM nodes.
-const highlightSimpleRange = (range, highlightClass) => {
-  const newNode = document.createElement('span');
-  newNode.setAttribute('class', highlightClass);
-  range.surroundContents(newNode);
-  return newNode;
-};
+const highlightSimpleRange = (range, highlightClass) => {};
 
 class LabelIndicator {
   rangeUtils;
@@ -335,10 +330,7 @@ class LabelIndicator {
     this.startIndicator.setAttribute('data-cookiesynth', tagStart || '');
     this.endIndicator.setAttribute('data-cookiesynth', tagEnd || '');
 
-    const highlightClass =
-      getTypeFromLabel(this.completedLabel) === 'meta'
-        ? 'o-label--meta-highlight'
-        : 'o-label--blcat-highlight';
+    const highlightClass = getTypeFromLabel(this.completedLabel) === 'meta';
 
     this.highlightNodes.forEach((n) => n.setAttribute('class', highlightClass));
   }
@@ -349,23 +341,39 @@ class LabelIndicator {
     this.updateTags(tagStart, tagEnd);
   }
 
+  highlightMeta(range) {
+    console.log('highlighting meta');
+    const newNode = document.createElement('span');
+    newNode.setAttribute('class', 'o-label--meta-highlight');
+    range.surroundContents(newNode);
+    this.highlightNodes.push(newNode);
+  }
+
+  highlightLabel(range) {
+    const highlightClass = 'o-label--blcat-highlight-full';
+
+    const newNode = document.createElement('span');
+    newNode.setAttribute('class', highlightClass);
+    range.surroundContents(newNode);
+    this.highlightNodes.push(newNode);
+  }
+
   inject() {
     this.rangeUtils.prepend(this.startIndicator);
     this.rangeUtils.append(this.endIndicator);
 
-    const highlightClass =
-      getTypeFromLabel(this.completedLabel) === 'meta'
-        ? 'o-label--meta-highlight'
-        : 'o-label--blcat-highlight';
+    const isMeta = getTypeFromLabel(this.completedLabel) === 'meta';
 
     // add the highlight
     this.rangeUtils.apply((range) => {
       if (new RangeUtils(range).getText().length === 0) {
         return;
       }
-
-      const newNode = highlightSimpleRange(range, highlightClass);
-      this.highlightNodes.push(newNode);
+      if (isMeta) {
+        this.highlightMeta(range);
+      } else {
+        this.highlightLabel(range);
+      }
     });
   }
 

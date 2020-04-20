@@ -544,7 +544,7 @@ export const MetaDisplay = () => {
 
     requiredBoxes.push(
       <TitledBox
-        className={classes['o-title-box--compact']}
+        className={classes['u-title-box--compact']}
         key={targetKey}
         title={`${keyValue} | ${keyType}`}
         children={requiredData}

@@ -9,6 +9,7 @@ import useInitializer from 'common/useInitializer.js';
 import CookieSynthLabel, {
   getLabelDescription,
 } from './cookiesynth/CookieSynthLabel.js';
+import { isLabelValid } from './cookiesynth/common.js';
 import { useCreateNewHotkey } from 'common/Hotkeys.js';
 import RangeUtils from 'common/RangeUtils.js';
 
@@ -63,7 +64,7 @@ export default () => {
     CreateNewHotkey,
     setValue: setNewHotkeyValue,
     requestHotkey: createHotkeyHotkey,
-  } = useCreateNewHotkey();
+  } = useCreateNewHotkey(isLabelValid);
   const {
     isModalOpen: isModifyLabelModalOpen,
     openModal: openModifyLabelModal,
@@ -247,7 +248,7 @@ export default () => {
   );
 
   const CreateHotkey = () => (
-    <CreateNewHotkey hotkeys={clipfics.hotkeys} onHotkeyAdded={createLabelHotkey} />
+    <CreateNewHotkey hotkeys={clipfics.hotkeys} onHotkeyAdded={createLabelHotkey} isHotkeyValid={isLabelValid} />
   );
 
   clipfics.requestNewLabel = requestNewLabel;

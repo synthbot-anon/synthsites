@@ -128,10 +128,10 @@ export const useStyles = makeStyles({
     'margin-left': theme.spacing(1),
   },
 
-  'o-title-box--compact': {
-    'padding-bottom': '16px',
+  'u-title-box--compact': {
+    'padding-bottom': '16px!important',
     '& > div': {
-      padding: '8px',
+      padding: '8px!important',
     },
   },
 

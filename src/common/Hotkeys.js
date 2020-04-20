@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import useCompletableTextField from 'common/useCompletableTextField.js';
 import { ThemeContext } from 'theme.js';
 import { Grid, Modal, Typography } from '@material-ui/core';
+import { useClipfics } from 'tasks.js';
 
 const IGNORE_KEYS = new Set(['Shift', 'Control', 'Alt', 'CapsLock']);
 
@@ -126,6 +127,7 @@ const CreateNewHotkeyComponent = ({
   inputRef,
   hotkeys,
   onHotkeyAdded,
+  isHotkeyValid,
   value,
   ...other
 }) => {
@@ -133,8 +135,14 @@ const CreateNewHotkeyComponent = ({
 
   const [pendingLabel, setPendingLabel] = useState();
   const [captureShortcut, setCaptureShortcut] = useState(false);
+  const clipfics = useClipfics();
 
   const requestHotkeyFor = (label) => {
+    if (!isHotkeyValid(label)) {
+      clipfics.terminal.log('invalid hotkey', label);
+      return;
+    }
+
     setPendingLabel(label);
     setCaptureShortcut(true);
   };
@@ -170,11 +178,18 @@ const CreateNewHotkeyComponent = ({
   );
 };
 
-export const useCreateNewHotkey = (props) => {
+export const useCreateNewHotkey = (isHotkeyValid) => {
   const { CompletableTextField, getValue, setValue } = useCompletableTextField();
   const [inputRef] = useState({});
+  const clipfics = useClipfics();
 
   const requestHotkey = () => {
+    const action = getValue();
+    if (!isHotkeyValid(action)) {
+      clipfics.terminal.log('invalid hotkey:', action);
+      return;
+    }
+
     inputRef.requestHotkeyFor(getValue());
   };
 

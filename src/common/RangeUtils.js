@@ -61,77 +61,63 @@ export default class RangeUtils {
    * @param fn (leafRangeObject) => {...}
    */
   apply(fn) {
-    // apply to the left-most range
-    fn(this.#startRange);
+    const leafNodes = [];
+    const uncheckedNodes = [this.#range.commonAncestorContainer];
+    console.log('ancestor:', this.#range.commonAncestorContainer);
 
-    // recursively move to siblings/uncles until the end is found
+    while (uncheckedNodes.length !== 0) {
+      const nextNode = uncheckedNodes.pop();
 
-    if (this.#startNode === this.#endNode) {
-      // found the end already, nothing left to do
-      return;
-    }
-
-    // apply fn to every leaf node right of the #startNode
-    let currentNode = this.#startNode;
-    for (;;) {
-      if (currentNode.nextSibling) {
-        // apply to the next sibling and continue
-        currentNode = currentNode.nextSibling;
-        if (this.applyToLeaves(fn, currentNode)) {
-          // reach the end node, so don't continue
-          return;
-        }
-      } else {
-        // done applying to siblings... move up to parent and repeat
-        currentNode = currentNode.parentNode;
+      if (!nextNode.childNodes) {
+        leafNodes.push(nextNode);
+        continue;
       }
-    }
-  }
 
-  /**
-   * Apply a function to a single leaf DOM node.
-   * @param fn (leafRangeObject) => {...}
-   * @param currentNode leaf DOM node
-   * @returns true iff this node is the last node within the range
-   */
-  applyToLeaf(fn, currentNode) {
-    const currentRange = new Range();
-    currentRange.setStartBefore(currentNode);
+      if (nextNode.childNodes.length === 0) {
+        leafNodes.push(nextNode);
+        continue;
+      }
 
-    if (currentNode !== this.#endNode) {
-      currentRange.setEndAfter(currentNode);
-      fn(currentRange);
-      return false;
-    }
-
-    currentRange.setEnd(this.#endNode, this.#endOffset);
-    fn(currentRange);
-    return true;
-  }
-
-  /**
-   * Apply a function to all leaf nodes under a DOM node.
-   * @param fn (leafRangeObject) => {...}
-   * @param startNode
-   * @returns true iff the last node within the range is a child of startNode
-   */
-  applyToLeaves(fn, startNode) {
-    const stack = [startNode];
-
-    while (stack.length !== 0) {
-      const currentNode = stack.pop();
-      if (currentNode.childNodes.length === 0) {
-        if (this.applyToLeaf(fn, currentNode)) {
-          return true;
-        }
-      } else {
-        for (let i = currentNode.childNodes.length - 1; i >= 0; i--) {
-          stack.push(currentNode.childNodes[i]);
-        }
+      for (let childNode of nextNode.childNodes) {
+        uncheckedNodes.push(childNode);
       }
     }
 
-    return false;
+    const leafRange = new Range();
+    leafNodes.forEach((leaf) => {
+      leafRange.selectNode(leaf);
+      if (this.#range.compareBoundaryPoints(Range.END_TO_START, leafRange) === 1) {
+        return;
+      }
+      if (this.#range.compareBoundaryPoints(Range.START_TO_END, leafRange) === -1) {
+        return;
+      }
+
+      const resultRange = new Range();
+      try {
+        if (
+          this.#range.compareBoundaryPoints(Range.START_TO_START, leafRange) === -1
+        ) {
+          resultRange.setStart(leafRange.startContainer, leafRange.startOffset);
+        } else {
+          resultRange.setStart(this.#range.startContainer, this.#range.startOffset);
+        }
+
+        if (this.#range.compareBoundaryPoints(Range.END_TO_END, leafRange) === -1) {
+          resultRange.setEnd(this.#range.endContainer, this.#range.endOffset);
+        } else {
+          resultRange.setEnd(leafRange.endContainer, leafRange.endOffset);
+        }
+      } catch (e) {
+        console.log(e);
+      }
+
+      fn(resultRange);
+    });
+  }
+
+  compareTo(otherRange, how) {
+    return this.#range.compareBoundaryPoints(how, otherRange);
   }
 
   /**
