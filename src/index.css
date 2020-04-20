@@ -19,3 +19,18 @@ html, body, #root {
 #__synth_selection {
 	scroll-margin-bottom: 40vh;
 }
+
+.o-label--blcat-highlight {
+  background-color: #FF7;
+  border: 1px solid black;
+  border-radius: 0.3em;
+  padding: 0em 0.25em 0.1em 0.25em;
+  margin: 0em 0.25em 0em 0.25em;
+}
+
+.o-label--meta-highlight {
+  background: linear-gradient(to left, rgba(255, 196, 80, 0), rgba(255, 196, 80, 1));
+  border-radius: 0.3em;
+  padding: 0em 0.25em 0.1em 0.25em;
+  margin: 0em 0.25em 0em 0.25em;
+}

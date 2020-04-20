@@ -145,8 +145,7 @@ export default class RangeUtils {
    */
   getText(startChars, endChars) {
     const div = document.createElement('div');
-    this.apply((range) => div.appendChild(range.cloneContents()));
-    // div.appendChild(this.#range.cloneContents());
+    div.appendChild(this.#range.cloneContents());
     const contents = div.textContent;
 
     if (!startChars) {
@@ -170,29 +169,6 @@ export default class RangeUtils {
   }
 
   setSelection(containerSelection) {
-    console.log('new selection:', this.#range);
     containerSelection.setRange(this.#range);
-  }
-
-  fixRange() {
-    let startContainer;
-    let startOffset;
-    let endContainer;
-    let endOffset;
-
-    this.apply((range) => {
-      if (!startContainer) {
-        startContainer = range.startContainer;
-        startOffset = range.startOffset;
-      }
-      endContainer = range.endContainer;
-      endOffset = range.endOffset;
-    });
-
-    const newRange = new Range();
-    newRange.setStart(startContainer, startOffset);
-    newRange.setEnd(endContainer, endOffset);
-
-    return newRange;
   }
 }

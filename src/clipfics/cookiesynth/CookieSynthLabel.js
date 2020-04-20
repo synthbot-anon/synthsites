@@ -10,6 +10,11 @@ import {
 import RangeUtils from 'common/RangeUtils.js';
 import { TerminalType, TerminalButton, TerminalSpan } from 'common/Terminal.js';
 import { Meta } from '../MetaReplay.js';
+import {
+  getSectionOffset,
+  getSectionNode,
+  getSectionRange,
+} from 'common/HtmlNavigator.js';
 
 const plural = (str) => {
   if (str.endsWith('s')) {
@@ -302,11 +307,9 @@ const LabelLog = ({ terminal, indicator, metaTransition, requestNewLabel }) => {
 };
 
 // Highlights a Range object. The Range object MUST NOT span over multiple DOM nodes.
-const highlightSimpleRange = (range) => {
+const highlightSimpleRange = (range, highlightClass) => {
   const newNode = document.createElement('span');
-  newNode.setAttribute('style', 'background-color: yellow;');
-  newNode.setAttribute('data-cookiesynth-style', 'highlight');
-  newNode.setAttribute('class', 'highlight');
+  newNode.setAttribute('class', highlightClass);
   range.surroundContents(newNode);
   return newNode;
 };
@@ -331,17 +334,29 @@ class LabelIndicator {
   updateTags(tagStart, tagEnd) {
     this.startIndicator.setAttribute('data-cookiesynth', tagStart || '');
     this.endIndicator.setAttribute('data-cookiesynth', tagEnd || '');
+
+    const highlightClass =
+      getTypeFromLabel(this.completedLabel) === 'meta'
+        ? 'o-label--meta-highlight'
+        : 'o-label--blcat-highlight';
+
+    this.highlightNodes.forEach((n) => n.setAttribute('class', highlightClass));
   }
 
   updateLabel(newLabel) {
+    this.completedLabel = newLabel;
     const [tagStart, tagEnd] = getTagsFromLabel(newLabel);
     this.updateTags(tagStart, tagEnd);
-    this.completedLabel = newLabel;
   }
 
   inject() {
     this.rangeUtils.prepend(this.startIndicator);
     this.rangeUtils.append(this.endIndicator);
+
+    const highlightClass =
+      getTypeFromLabel(this.completedLabel) === 'meta'
+        ? 'o-label--meta-highlight'
+        : 'o-label--blcat-highlight';
 
     // add the highlight
     this.rangeUtils.apply((range) => {
@@ -349,7 +364,7 @@ class LabelIndicator {
         return;
       }
 
-      const newNode = highlightSimpleRange(range);
+      const newNode = highlightSimpleRange(range, highlightClass);
       this.highlightNodes.push(newNode);
     });
   }

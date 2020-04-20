@@ -368,7 +368,7 @@ const getSectionStart = (section) => {
  * @param textOffset Character offset within the node's text.
  * @return { node, nodeOffset } usable within a Range
  */
-const getSectionNode = (section, textOffset) => {
+export const getSectionNode = (section, textOffset) => {
   let currentNode = leftMost(section);
   let remainingOffset = textOffset;
 
@@ -383,7 +383,7 @@ const getSectionNode = (section, textOffset) => {
   };
 };
 
-const getSectionRange = (section) => {
+export const getSectionRange = (section) => {
   const { node: startNode, offset: startOffset } = getSectionStart(section);
   const { node: endNode, offset: endOffset } = getSectionEnd(section);
 

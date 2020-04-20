@@ -7,7 +7,6 @@ import {
   getCookieSynthCloseLabelType,
 } from 'clipfics/cookiesynth/common.js';
 import CookieSynthLabel from 'clipfics/cookiesynth/CookieSynthLabel.js';
-import { getSectionOffset } from 'common/HtmlNavigator.js';
 import RangeUtils from 'common/RangeUtils.js';
 
 const reloadLabels = (clipfics) => {
@@ -65,8 +64,6 @@ const reloadLabels = (clipfics) => {
 
       range.setStart(startContainer, startOffset);
       range.setEnd(endContainer, endOffset);
-      // const utils = new RangeUtils(range);
-      // const labelRange = utils.fixRange();
       
       new CookieSynthLabel(range, label).injectLabel(clipfics);
       return;
