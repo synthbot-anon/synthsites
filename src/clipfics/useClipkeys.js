@@ -12,7 +12,7 @@ import CookieSynthLabel, {
 import { isLabelValid } from './cookiesynth/common.js';
 import { useCreateNewHotkey } from 'common/Hotkeys.js';
 import RangeUtils from 'common/RangeUtils.js';
-import { Button, Typography } from '@material-ui/core';
+import { Button } from '@material-ui/core';
 
 const Hotkey = ({ hotkeys, shortcut, description, disabled, restore }) => {
   const { classes } = useContext(ThemeContext);
@@ -64,8 +64,7 @@ const HotkeyDisplay = ({
       })}
 
       {Array.from(disabledHotkeys.entries()).map(([key, entry]) => {
-        console.log('disabled:', entry);
-        const [shortcut, action, description] = entry;
+        const [shortcut, , description] = entry;
 
         return (
           <Hotkey
@@ -84,53 +83,44 @@ const HotkeyDisplay = ({
 
 const useHotkeyDisplay = () => {
   const clipfics = useClipfics();
-  const state = useRef({
-    nextHotkeyIndex: 0,
-    enabledHotkeys: new Map(),
-    disabledHotkeys: new Map(),
-  });
+  const nextHotkeyIndex = useRef(0);
+  const enabledHotkeys = useRef(new Map());
+  const disabledHotkeys = useRef(new Map());
 
   const registerHotkey = (shortcut, action, description) => {
-    if (state.current.enabledHotkeys.has(shortcut)) {
-      const [
-        oldKey,
-        oldShortcut,
-        oldAction,
-        oldDescription,
-      ] = state.current.enabledHotkeys.get(shortcut);
+    const enabled = enabledHotkeys.current;
+    const disabled = disabledHotkeys.current;
+
+    if (enabled.has(shortcut)) {
+      const [oldKey, oldShortcut, oldAction, oldDescription] = enabled.get(shortcut);
       clipfics.hotkeys.unregisterHotkey(shortcut, oldAction);
-      state.current.disabledHotkeys.set(oldKey, [
-        oldShortcut,
-        oldAction,
-        oldDescription,
-      ]);
+      disabled.set(oldKey, [oldShortcut, oldAction, oldDescription]);
     }
 
-    state.current.enabledHotkeys.set(shortcut, [
-      state.current.nextHotkeyIndex++,
-      shortcut,
-      action,
-      description,
-    ]);
+    const nextIndex = nextHotkeyIndex.current++;
+    enabled.set(shortcut, [nextIndex, shortcut, action, description]);
 
     clipfics.hotkeys.registerHotkey(shortcut, action);
   };
 
   const restoreHotkey = (key) => {
-    const [shortcut, action, description] = state.current.disabledHotkeys.get(key);
-    const [oldKey, oldShortcut, oldAction, oldDescription] = state.current.enabledHotkeys.get(shortcut);
+    const enabled = enabledHotkeys.current;
+    const disabled = disabledHotkeys.current;
+    const [shortcut, action, description] = disabled.get(key);
+    const [oldKey, oldShortcut, oldAction, oldDescription] = enabled.get(shortcut);
+
     clipfics.hotkeys.unregisterHotkey(shortcut, oldAction);
-    state.current.disabledHotkeys.delete(key);
-    state.current.enabledHotkeys.set(shortcut, [key, shortcut, action, description]);
-    state.current.disabledHotkeys.set(oldKey, [oldShortcut, oldAction, oldDescription]);
+    disabled.delete(key);
+    enabled.set(shortcut, [key, shortcut, action, description]);
+    disabled.set(oldKey, [oldShortcut, oldAction, oldDescription]);
     clipfics.hotkeys.registerHotkey(shortcut, action);
   };
 
   const Display = () => (
     <HotkeyDisplay
       hotkeys={clipfics.hotkeys}
-      enabledHotkeys={state.current.enabledHotkeys}
-      disabledHotkeys={state.current.disabledHotkeys}
+      enabledHotkeys={enabledHotkeys.current}
+      disabledHotkeys={disabledHotkeys.current}
       restoreHotkey={restoreHotkey}
     />
   );

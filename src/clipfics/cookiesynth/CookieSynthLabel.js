@@ -6,6 +6,8 @@ import {
   getTypeFromLabel,
   getAllProperties,
   getAllValues,
+  getCookieSynthOpenLabelType,
+  getCookieSynthCloseLabelType,
 } from './common.js';
 import RangeUtils from 'common/RangeUtils.js';
 import { TerminalType, TerminalButton, TerminalSpan } from 'common/Terminal.js';
@@ -334,7 +336,6 @@ class LabelIndicator {
   }
 
   highlightMeta(range) {
-    console.log('highlighting meta');
     const newNode = document.createElement('span');
     newNode.setAttribute('class', 'o-label--meta-highlight');
     range.surroundContents(newNode);
@@ -441,3 +442,63 @@ class MetaTransition {
     }
   }
 }
+
+export const reloadLabels = (clipfics) => {
+  const { terminal } = clipfics;
+  const div = clipfics.storyContainerRef.current;
+  const pendingLabels = new Map();
+
+  div.querySelectorAll('[data-cookiesynth]').forEach((e) => {
+    let label = e.dataset.cookiesynth;
+    if (label.length === 0) {
+      return;
+    }
+
+    if (label[0] !== '[' || label[label.length - 1] !== ']') {
+      terminal.log('invalid label:', label);
+      return;
+    }
+
+    label = label.substring(1, label.length - 1);
+
+    const openLabelType = getCookieSynthOpenLabelType(label);
+    if (openLabelType) {
+      if (openLabelType === 'meta') {
+        const range = new Range();
+        range.setStartAfter(e);
+        range.setEndBefore(e);
+        e.parentNode.removeChild(e);
+        new CookieSynthLabel(range, label).injectLabel(clipfics);
+        return;
+      }
+      const typeStack = pendingLabels.get(openLabelType) || [];
+      pendingLabels.set(openLabelType, typeStack);
+      typeStack.push([label, e]);
+      return;
+    }
+
+    const closeLabelType = getCookieSynthCloseLabelType(label);
+    if (closeLabelType) {
+      const typeStack = pendingLabels.get(closeLabelType);
+      const [label, start] = typeStack.pop();
+      const range = new Range();
+
+      const startContainer = start.nextSibling;
+      const startOffset = 0;
+      start.parentNode.removeChild(start);
+
+      const endContainer = e.previousSibling;
+      const endOffset = endContainer.length;
+      e.parentNode.removeChild(e);
+
+
+      range.setStart(startContainer, startOffset);
+      range.setEnd(endContainer, endOffset);
+      
+      new CookieSynthLabel(range, label).injectLabel(clipfics);
+      return;
+    }
+
+    terminal.log('invalid label:', label);
+  });
+};

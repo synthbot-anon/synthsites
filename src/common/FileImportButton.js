@@ -5,13 +5,11 @@ import { ThemeContext } from 'theme.js';
 /**
  * Button to load a story file into the StorySheet.
  */
-export default ({ onFileLoaded }) => {
+export default ({ onFilesLoaded }) => {
   const { classes } = useContext(ThemeContext);
 
-  const handleFileSelected = (event) => {
-    const reader = new FileReader();
-    reader.onload = (e) => onFileLoaded(e.target.result);
-    reader.readAsText(event.target.files[0]);
+  const handleFileSelected = ({ target }) => {
+    onFilesLoaded(target.files);   
   };
 
   return (

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import useCompletableTextField from 'common/useCompletableTextField.js';
 import { ThemeContext } from 'theme.js';
 import { Grid, Modal, Typography } from '@material-ui/core';
@@ -180,7 +180,7 @@ const CreateNewHotkeyComponent = ({
 
 export const useCreateNewHotkey = (isHotkeyValid) => {
   const { CompletableTextField, getValue, setValue } = useCompletableTextField();
-  const [inputRef] = useState({});
+  const inputRef = useRef({});
   const clipfics = useClipfics();
 
   const requestHotkey = () => {
@@ -190,14 +190,14 @@ export const useCreateNewHotkey = (isHotkeyValid) => {
       return;
     }
 
-    inputRef.requestHotkeyFor(getValue());
+    inputRef.current.requestHotkeyFor(getValue());
   };
 
   return {
     CreateNewHotkey: (props) => (
       <CreateNewHotkeyComponent
         CompletableTextField={CompletableTextField}
-        inputRef={inputRef}
+        inputRef={inputRef.current}
         {...props}
       />
     ),

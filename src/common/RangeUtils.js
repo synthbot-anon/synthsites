@@ -63,7 +63,6 @@ export default class RangeUtils {
   apply(fn) {
     const leafNodes = [];
     const uncheckedNodes = [this.#range.commonAncestorContainer];
-    console.log('ancestor:', this.#range.commonAncestorContainer);
 
     while (uncheckedNodes.length !== 0) {
       const nextNode = uncheckedNodes.pop();

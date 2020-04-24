@@ -257,7 +257,6 @@ export class MetaReplay {
    * @param transition Map of { target => {prop => value} } updates to apply
    */
   add(range, meta) {
-    Meta.dump('new meta', meta);
     if (meta.targets.size === 0) {
       return;
     }

@@ -1,15 +1,16 @@
 const KEYWORD = '[a-zA-Z][a-zA-Z0-9]*';
 const VALUE = '(?:[^"]*|\\?)';
 const SEGTYPE = `${KEYWORD}`;
-const OPEN_REGEX = new RegExp(
-  `^\\s*(${KEYWORD})(?:\\s*=\\s*"${VALUE}"|(?:\\s+${SEGTYPE}\\s*=\\s*"${VALUE}")*)\\s*$`,
-);
+const OPEN_REGEX_STR = `(${KEYWORD})(?:\\s*=\\s*"${VALUE}"|(?:\\s+${SEGTYPE}\\s*=\\s*"${VALUE}")*)`
+const OPEN_REGEX = new RegExp(`^\\s*${OPEN_REGEX_STR}\\s*$`);
 const MISSING_VALUES_REGEX = new RegExp(`(${KEYWORD})\\s*=\\s*"(\\?)"`, 'g');
 const ALL_PROPERTIES_REGEX = new RegExp(`(${KEYWORD})\\s*=\\s*"${VALUE}"`, 'g');
 const ALL_VALUES_REGEX = new RegExp(`(?:${KEYWORD})\\s*=\\s*"(${VALUE})"`, 'g');
 const SPLIT_ASSIGNMENT = new RegExp(`^\\s*(${SEGTYPE})\\s*=\\s*"(${VALUE})"\\s*$`);
 
-const CLOSE_REGEX = new RegExp(`^\\s*\\/(${KEYWORD})\\s*$`);
+const CLOSE_REGEX_STR = `\\/(${KEYWORD})`
+const CLOSE_REGEX = new RegExp(`^\\s*${CLOSE_REGEX_STR}\\s*$`);
+const TAG_SPLIT = new RegExp(`([^\\[]+|\\[${OPEN_REGEX_STR}\\]|\\[${CLOSE_REGEX_STR}\\]|\\[)`, 'g');
 
 export const isLabelValid = (label) => {
   const result = OPEN_REGEX.test(label);
@@ -69,3 +70,8 @@ export const getCookieSynthCloseLabelType = (label) => {
 
   return null;
 };
+
+export const parseTags = (string) => {
+  return Array.from(string.matchAll(TAG_SPLIT)).map((x) => x[0])
+}
+
