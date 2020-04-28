@@ -11,7 +11,7 @@ import { reloadLabels } from 'clipfics/cookiesynth/CookieSynthLabel.js';
 
 const greenToHtml = (greentext) => {
   if (!greentext) {
-    return "";
+    return '';
   }
 
   const lines = greentext.split('\n');
@@ -50,14 +50,17 @@ export const htmlToGreen = (node) => {
     e.replaceWith(textNode);
   });
 
+  const textLines = [];
   clone.querySelectorAll('p').forEach((e) => {
     const textTag = e.textContent;
-    const textNode = document.createTextNode(`${textTag}\n`);
-    e.replaceWith(textNode);
+    // const textNode = document.createTextNode(`${textTag}\n`);
+    textLines.push(textTag);
+    // e.replaceWith(textNode);
   });
 
-  return clone.innerHTML;
-}
+  // return clone.childNodes[0].nodeValue;
+  return textLines.join("");
+};
 
 export default ({ children }) => {
   const clipfics = useClipfics();
@@ -78,5 +81,4 @@ export default ({ children }) => {
       dangerouslySetInnerHTML={{ __html: div.innerHTML }}
     />
   );
-
-}
+};

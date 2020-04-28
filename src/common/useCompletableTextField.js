@@ -19,10 +19,6 @@ const CompletableTextFieldComponent = ({ inputRef, onComplete, value, ...other }
 
   const onSubmitted = (e) => {
     e.preventDefault();
-    if (displayValue === '') {
-      return;
-    }
-
     onComplete(displayValue);
     setDisplayValue('');
   };

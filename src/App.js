@@ -127,13 +127,16 @@ const App = () => {
   terminal.log('do you need help using this interface?');
 
   const TerminalDisplay = terminal.Component;
-  const { ResourcePane, resourceManager, tabs: resourceManagerTabs } = useResourceManager(terminal);
-  
   const {
-    taskContext,
-    tabs: clipficsTabs,
-  } = useClipficsTask(resourceManager, terminal);
-  
+    ResourcePane,
+    resourceManager,
+    tabs: resourceManagerTabs,
+  } = useResourceManager(terminal);
+
+  const { taskContext, tabs: clipficsTabs } = useClipficsTask(
+    resourceManager,
+    terminal,
+  );
 
   for (let { label, panel } of clipficsTabs) {
     addTab(label, panel);

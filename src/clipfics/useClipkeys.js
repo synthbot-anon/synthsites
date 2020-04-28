@@ -8,6 +8,7 @@ import useLoopControls from 'common/useLoopControls.js';
 import useInitializer from 'common/useInitializer.js';
 import CookieSynthLabel, {
   getLabelDescription,
+  getLabelHint,
 } from './cookiesynth/CookieSynthLabel.js';
 import { isLabelValid } from './cookiesynth/common.js';
 import { useCreateNewHotkey } from 'common/Hotkeys.js';
@@ -261,9 +262,19 @@ export default () => {
   };
 
   useInitializer(() => {
-    createHotkey('Enter', addCustomLabel, 'Create custom label');
-    createLabelHotkey('e', 'meta character="?" emotion="?"');
-    createLabelHotkey('c', 'dialogue speaker="?"');
+    // createHotkey('~', addCustomLabel, 'Create custom label');
+    createLabelHotkey('~', 'meta element="narrator" character="?"');
+    createLabelHotkey('1', 'spoken character="?"');
+    createLabelHotkey('!', 'meta character="?" age="?" gender="?"');
+    createLabelHotkey('2', 'spoken emotion="?"');
+    createLabelHotkey('@', 'meta character="?" emotion="?"');
+    createLabelHotkey('3', 'tuned rate="?" stress="?" volume="?" pitch="?"')
+    createLabelHotkey('#', 'meta character="?" rate="?" volume="?" pitch="?"')
+    createLabelHotkey('4', 'timed pause-before="?" pause-after="?"')
+    createLabelHotkey('5', 'positioned balance="?"')
+    createLabelHotkey('6', 'voiced pronunciation="?"')
+    createLabelHotkey('7', 'voiced style="?"')
+    createHotkey('+', createHotkeyHotkey, 'Add the last label as a hotkey');
     createNextSelectionHotkey('>', /\S.*\S?/g, 'Select next paragraph');
     createPrevSelectionHotkey('<', /\S.*\S?/g, 'Select previous paragraph');
     createNextSelectionHotkey("'", /"[^ ][^"]*"?/g, 'Select next quote');
@@ -278,8 +289,17 @@ export default () => {
       /(?:\w[^.?!"]*[^ "][.?!]*)/g,
       'Select previous phrase',
     );
-    createHotkey('!', createHotkeyHotkey, 'Create a new hotkey');
+    createHotkey('\\', () => clipfics.saveResource(), 'Save');
   });
+
+  const getLabelWithHint = (missingProp) => {
+    const hint = getLabelHint(missingProp);
+    if (hint) {
+      return `${missingProp} (${hint})`;
+    }
+
+    return missingProp;
+  }
 
   const HotkeyModals = () => (
     <React.Fragment>
@@ -303,7 +323,7 @@ export default () => {
           requestNextMissingProp();
         }}
         onClose={stopRequestingProps}
-        label={currentMissingProp}
+        label={getLabelWithHint(currentMissingProp)}
       />
       <TextFieldModal
         open={isModifyLabelModalOpen}

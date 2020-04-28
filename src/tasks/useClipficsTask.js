@@ -4,7 +4,9 @@ import ContainerSelection from 'common/ContainerSelection.js';
 import { MetaReplay } from 'clipfics/MetaReplay.js';
 import HtmlNavigator from 'common/HtmlNavigator.js';
 import CookieSynthHtml from 'clipfics/cookiesynth/CookieSynthHtml.js';
-import CookieSynthGreentext, { htmlToGreen } from 'clipfics/cookiesynth/CookieSynthGreentext.js';
+import CookieSynthGreentext, {
+  htmlToGreen,
+} from 'clipfics/cookiesynth/CookieSynthGreentext.js';
 import { ThemeContext } from 'theme.js';
 import useForceUpdate from 'common/useForceUpdate.js';
 import { Grid } from '@material-ui/core';
@@ -25,7 +27,7 @@ const HtmlResourceView = ({ taskContext }) => {
 
   return (
     <div className={classes['c-story-panel__container']}>
-      <CookieSynthHtml className={classes['c-story-panel__paper']} >
+      <CookieSynthHtml className={classes['c-story-panel__paper']}>
         {taskContext.storyContent}
       </CookieSynthHtml>
     </div>
@@ -46,7 +48,7 @@ const GreentextResourceView = ({ taskContext }) => {
 
   return (
     <div className={classes['c-story-panel__container']}>
-      <CookieSynthGreentext className={classes['c-story-panel__paper']} >
+      <CookieSynthGreentext className={classes['c-story-panel__paper']}>
         {taskContext.storyContent}
       </CookieSynthGreentext>
     </div>
@@ -82,7 +84,12 @@ const HotkeyPanel = () => {
 };
 
 const getCurrentHtmlContent = () => {
-  const storyData = document.getElementById('js-story-sheet').innerHTML;
+  const div = document.getElementById('js-story-sheet').cloneNode(true);
+  div.querySelectorAll('.o-label--blcat-highlight-full').forEach((el) => {
+    el.replaceWith(...el.childNodes);
+  });
+
+  const storyData = div.innerHTML;
   const storyBlob = new Blob([storyData], {
     type: 'text/html',
   });
@@ -98,9 +105,7 @@ const getCurrentGreenContent = () => {
   });
 
   return storyBlob;
-}
-
-
+};
 
 export default (resourceManager, terminal) => {
   const [taskContext] = useState(() => {
@@ -150,7 +155,7 @@ export default (resourceManager, terminal) => {
     return () => {
       useEffect(() => {
         const saveResource = () => {
-          taskContext.currentResource = resourceManager.update(
+          taskContext.currentResource = resourceManager.updateResource(
             resource,
             getCurrentHtmlContent(),
           );
@@ -175,15 +180,17 @@ export default (resourceManager, terminal) => {
     return () => {
       useEffect(() => {
         const saveResource = () => {
-          taskContext.currentResource = resourceManager.update(
+          taskContext.currentResource = resourceManager.updateResource(
             resource,
-            getCurrentGreenContent()
+            getCurrentGreenContent(),
           );
         };
 
         taskContext.saveResource = saveResource;
+        console.log('loading saveResource as:', saveResource);
         return () => {
           taskContext.saveResource = null;
+          console.log('unloading saveResource');
         };
       });
 
@@ -192,8 +199,8 @@ export default (resourceManager, terminal) => {
   };
 
   useEffect(() => {
-    resourceManager.registerResourceHandler('story/prose', createProseView);
-    resourceManager.registerResourceHandler('story/greentext', createGreentextView);
+    resourceManager.registerResourceHandler('story/prose', createProseView, getCurrentHtmlContent);
+    resourceManager.registerResourceHandler('story/greentext', createGreentextView, getCurrentGreenContent);
     return () => {
       resourceManager.unregisterResourceHandler('story/prose', createProseView);
       resourceManager.registerResourceHandler('story/greentext', createGreentextView);

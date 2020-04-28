@@ -124,27 +124,74 @@ class DefaultDescription {
 
 const KNOWN_DESCRIPTIONS = [
   new DefaultDescription(
-    'dialogue speaker="{speaker}"',
-    'Label speaker as {speaker}',
+    'meta element="narrator" character="?"',
+    'Change the narrator',
   ),
-  new DefaultDescription('dialogue speaker="?"', 'Label the dialogue speaker'),
+  new DefaultDescription('spoken character="?"', 'Label the speaker'),
   new DefaultDescription(
-    'meta character="{character}" emotion="{emotion}"',
-    "Change {character}'s emotion to {emotion}",
+    'spoken character="{character}"',
+    'Label speaker as {character}',
+  ),
+  new DefaultDescription(
+    'meta character="?" age="?" gender="?"',
+    'Create a new character',
+  ),
+  new DefaultDescription('spoken emotion="?"', 'Label the emotion'),
+  new DefaultDescription(
+    'spoken emotion="{emotion}"',
+    'Label the emotion as {emotion}',
   ),
   new DefaultDescription(
     'meta character="{character}" emotion="?"',
-    "Change {character}'s emotion",
+    "Change {character}'s default emotion",
   ),
   new DefaultDescription(
     'meta character="?" emotion="{emotion}"',
-    "Change a character's emotion to {emotion}",
+    "Change a character's default emotion to {emotion}",
   ),
   new DefaultDescription(
     'meta character="?" emotion="?"',
-    "Change a character's emotion",
+    "Change a character's default emotion",
+  ),
+  new DefaultDescription(
+    'tuned rate="?" stress="?" volume="?" pitch="?"',
+    'Tune how a phrase is spoken (rate, stress, volume, pitch)',
+  ),
+  new DefaultDescription(
+    'meta character="?" rate="?" volume="?" pitch="?"',
+    "Change a character's default tuning",
+  ),
+  new DefaultDescription(
+    'timed pause-before="?" pause-after="?"',
+    'Add a pause before or after a phrase',
+  ),
+  new DefaultDescription(
+    'positioned balance="?"',
+    'Label where a characer is speaking from (e.g., left, right)',
+  ),
+  new DefaultDescription(
+    'voiced pronunciation="?"',
+    'Manually label how to pronounce a phrase',
+  ),
+  new DefaultDescription(
+    'voiced style="?"',
+    'Label speech for sound effects (subvocalized, memory, royal canterlot voice)',
   ),
 ];
+
+const PROP_HINTS = new Map();
+PROP_HINTS.set('character', 'e.g., Twilight Sparkle');
+PROP_HINTS.set('age', 'baby, foal, teen, adult, elder');
+PROP_HINTS.set('gender', 'male, female, neutral');
+PROP_HINTS.set('emotion', 'e.g., excited');
+PROP_HINTS.set('rate', 'fast, slow');
+PROP_HINTS.set('stress', 'none, strong, moderate, reduced');
+PROP_HINTS.set('volume', 'whisper, soft, medium, loud, x-loud');
+PROP_HINTS.set('pitch', 'low, high');
+PROP_HINTS.set('pause-before', 'none, weak, medium, strong');
+PROP_HINTS.set('pause-after', 'none, weak, medium, strong');
+PROP_HINTS.set('balance', 'left, center, right, left-to-center, left-to-right, etc.');
+PROP_HINTS.set('pronunciation', 'e.g., Dear Princess {S AH0 L EH1 S T IY0 AH2}');
 
 export const getLabelDescription = (partialLabel) => {
   for (let knownDesc of KNOWN_DESCRIPTIONS) {
@@ -155,6 +202,10 @@ export const getLabelDescription = (partialLabel) => {
   }
 
   return null;
+};
+
+export const getLabelHint = (property) => {
+  return PROP_HINTS.get(property);
 };
 
 export default class CookieSynthLabel {
@@ -205,8 +256,18 @@ export default class CookieSynthLabel {
     }
     result += originalLabel.substring(lastOffset, originalLabel.length);
 
-    this.completedLabel = result;
-    return result;
+    const type = getTypeFromLabel(result);
+    const properties = matchesToString(getAllProperties(result));
+    const values = matchesToString(getAllValues(result));
+
+    this.completedLabel = type;
+    for (let i = 0; i < properties.length; i++) {
+      if (values[i].length !== 0) {
+        this.completedLabel += ` ${properties[i]}="${values[i]}"`;
+      }
+    }
+
+    return this.completedLabel;
   }
 
   injectLabel(clipfics) {
@@ -491,10 +552,9 @@ export const reloadLabels = (clipfics) => {
       const endOffset = endContainer.length;
       e.parentNode.removeChild(e);
 
-
       range.setStart(startContainer, startOffset);
       range.setEnd(endContainer, endOffset);
-      
+
       new CookieSynthLabel(range, label).injectLabel(clipfics);
       return;
     }

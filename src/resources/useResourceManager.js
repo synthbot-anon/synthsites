@@ -32,29 +32,29 @@ class ResourceManager {
   resourceView = () => <div />;
   onNewResourceLoaded;
   resourceHandlers = new Map();
-  focusedResource;
+  getResourceState;
 
   constructor(terminal) {
     this.terminal = terminal;
   }
 
-  registerResourceHandler(type, createResourceView) {
+  registerResourceHandler(type, createResourceView, getLatestResourceState) {
     const typeHandlers = this.resourceHandlers.get(type) || [];
     this.resourceHandlers.set(type, typeHandlers);
 
-    typeHandlers.push(createResourceView);
+    typeHandlers.push([createResourceView, getLatestResourceState]);
   }
 
   unregisterResourceHandler(type, createResourceView) {
     let typeHandlers = this.resourceHandlers.get(type);
-    typeHandlers = typeHandlers.filter((x) => x !== createResourceView);
+    typeHandlers = typeHandlers.filter((x) => x[0] !== createResourceView);
     this.current.resourceHandlers.set(type, typeHandlers);
     // TODO: check if the current resource display uses this type
     // if yes, then clear it
   }
 
   loadResource(resource) {
-    const handler = this.resourceHandlers.get(resource.type)[0];
+    const [handler, getResourceState] = this.resourceHandlers.get(resource.type)[0];
 
     if (typeof resource === 'number') {
       // TODO: if someone provides a key, load the corresponding resource
@@ -62,7 +62,9 @@ class ResourceManager {
     } else {
       this.resourceView = handler(resource);
       this.onNewResourceLoaded();
-      this.focusedResource = resource;
+      this.getResourceState = () => {
+        return { name: resource.name, content: getResourceState() };
+      };
     }
   }
 
@@ -104,16 +106,26 @@ class ResourceManager {
       type,
     };
 
-    resourceEntry.promise = local.storeFile(resourceEntry);
+    //resourceEntry.promise = local.storeFile(resourceEntry);
     return resourceEntry;
   }
+
+  listResources() {
+    local.listFiles();
+  }
 }
+
+const Display = ({ resourceManager }) => {};
 
 export default (terminal) => {
   const resourceManager = useRef(new ResourceManager(terminal));
 
   const ResourcePane = () => {
     const { forceUpdate } = useForceUpdate();
+
+    if (local.database) {
+      resourceManager.current.listResources();
+    }
 
     useEffect(() => {
       resourceManager.current.onNewResourceLoaded = forceUpdate;
@@ -146,7 +158,7 @@ export default (terminal) => {
         />
         <FileExportButon
           getDownloadBlob={() => {
-            return resourceManager.current.focusedResource;
+            return resourceManager.current.getResourceState();
           }}
         />
       </Grid>

@@ -12,10 +12,6 @@ export default ({ children }) => {
   const sanitizedHtml = customSanitizeHtml(children);
   div.innerHTML = sanitizedHtml;
 
-  div.querySelectorAll('[data-cookiesynth-style]').forEach((e) => {
-    e.replaceWith(...e.childNodes);
-  });
-
   useEffect(() => reloadLabels(clipfics));
 
   return (

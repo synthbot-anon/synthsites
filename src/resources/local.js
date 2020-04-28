@@ -111,6 +111,22 @@ class LocalDB {
         });
     });
   }
+
+  listFiles() {
+    return new Promise((resolve, reject) => {
+      const request = this.database.transaction(['resources'], 'readonly')
+        .objectStore('resources')
+        .openCursor();
+
+      request.onsuccess = ({ target }) => {
+        let cursor = target.result;
+        if (cursor) {
+          console.log('found file:', cursor.key, cursor.value.name);
+          cursor.continue();
+        }
+      }
+    });
+  }
 }
 
 export default new LocalDB();
