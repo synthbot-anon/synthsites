@@ -20,12 +20,9 @@ const greenToHtml = (greentext) => {
 
   lines.forEach((line) => {
     const p = document.createElement('p');
-    if (line.startsWith('>')) {
-      p.setAttribute('class', 'u-greentext--green');
-    }
 
     parseTags(line).forEach((piece) => {
-      if (line[0] !== '[' || line[line.length - 1] !== ']') {
+      if (piece[0] !== '[' || piece[piece.length - 1] !== ']') {
         const text = document.createTextNode(piece);
         p.appendChild(text);
         return;
@@ -35,6 +32,10 @@ const greenToHtml = (greentext) => {
       span.setAttribute('data-cookiesynth', piece);
       p.appendChild(span);
     });
+
+    if (p.textContent.startsWith('>')) {
+      p.setAttribute('class', 'u-greentext--green');
+    }
 
     div.appendChild(p);
   });
@@ -53,9 +54,7 @@ export const htmlToGreen = (node) => {
   const textLines = [];
   clone.querySelectorAll('p').forEach((e) => {
     const textTag = e.textContent;
-    // const textNode = document.createTextNode(`${textTag}\n`);
     textLines.push(textTag);
-    // e.replaceWith(textNode);
   });
 
   // return clone.childNodes[0].nodeValue;

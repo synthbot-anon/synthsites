@@ -7,7 +7,7 @@ export default class ContainerSelection {
     this.#containerRef = containerRef;
   }
 
-  useRange(allUpdates) {
+  useRange(allUpdates, f) {
     const [range, setRange] = useState(this.getRange());
 
     useEffect(() => {
@@ -15,6 +15,9 @@ export default class ContainerSelection {
         const newRange = this.getRange();
         if (allUpdates || newRange) {
           setRange(newRange);
+          if (f) {
+            f(newRange);
+          }
         }
       };
 
@@ -26,6 +29,29 @@ export default class ContainerSelection {
     });
 
     return range;
+  }
+
+  useClick(f) {
+    const containerRef = this.#containerRef.current;
+
+    useEffect(() => {
+      const listener = () => {
+        const newRange = this.getRange();
+        if (newRange) {
+          f(newRange);
+        }
+      }
+
+      if (containerRef) {
+        containerRef.addEventListener('click', listener);
+      }
+
+      return () => {
+        if (containerRef) {
+          containerRef.removeEventListener('click', listener);
+        }
+      };
+    });
   }
 
   setRange(range) {

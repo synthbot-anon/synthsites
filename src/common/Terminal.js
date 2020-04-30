@@ -25,9 +25,14 @@ export default class Console {
     this.#onUpdateCallbacks.forEach((updateDisplay) => updateDisplay(this.history));
   }
 
-  append(element) {
+  clear() {
+    this.history = [];
+    this.#onUpdateCallbacks.forEach((updateDisplay) => updateDisplay(this.history));
+  }
+
+  append(Element) {
     const key = (this.nextId++).toString();
-    this.history = [...this.history, <div key={key}>>{element}</div>];
+    this.history = [...this.history, <div key={key}>><Element terminalKey={key} /></div>];
     this.#onUpdateCallbacks.forEach((updateDisplay) => updateDisplay(this.history));
     return key;
   }
@@ -44,6 +49,12 @@ export default class Console {
 
     this.#onUpdateCallbacks.forEach((updateDisplay) => updateDisplay(this.history));
     return newKey;
+  }
+
+  bump(key) {
+    const bumpedLog = this.history.find((x) => x.key === key);
+    this.history = [...this.history.filter((x) => x['key'] !== key), bumpedLog];
+    this.#onUpdateCallbacks.forEach((updateDisplay) => updateDisplay(this.history));
   }
 
   registerOnUpdate(callback) {

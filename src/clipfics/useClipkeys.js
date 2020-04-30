@@ -289,7 +289,7 @@ export default () => {
       /(?:\w[^.?!"]*[^ "][.?!]*)/g,
       'Select previous phrase',
     );
-    createHotkey('\\', () => clipfics.saveResource(), 'Save');
+    // createHotkey('\\', () => clipfics.saveResource(), 'Export labels');
   });
 
   const getLabelWithHint = (missingProp) => {

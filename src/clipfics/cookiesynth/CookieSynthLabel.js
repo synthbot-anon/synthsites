@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   isLabelValid,
   getTagsFromLabel,
@@ -12,6 +12,7 @@ import {
 import RangeUtils from 'common/RangeUtils.js';
 import { TerminalType, TerminalButton, TerminalSpan } from 'common/Terminal.js';
 import { Meta } from '../MetaReplay.js';
+import RangeTreeMap from 'common/RangeTreeMap.js';
 
 const plural = (str) => {
   if (str.endsWith('s')) {
@@ -271,7 +272,7 @@ export default class CookieSynthLabel {
   }
 
   injectLabel(clipfics) {
-    const { terminal, selection, requestNewLabel, metaReplay } = clipfics;
+    const { terminal, selection, requestNewLabel, metaReplay, onLabelClicked } = clipfics;
     let completedLabel = this.getCompletedLabel();
 
     if (!isLabelValid(completedLabel)) {
@@ -287,14 +288,17 @@ export default class CookieSynthLabel {
     const metaTransition = new MetaTransition(metaReplay, this.#range);
     metaTransition.apply(completedLabel);
 
-    terminal.append(
+    terminal.append(({ terminalKey }) => (
       <LabelLog
+        terminalKey={terminalKey}
         terminal={terminal}
+        range={this.#range}
+        onLabelClicked={onLabelClicked}
         indicator={indicator}
         metaTransition={metaTransition}
         requestNewLabel={requestNewLabel}
-      />,
-    );
+      />
+    ));
 
     return true;
   }
@@ -322,9 +326,28 @@ const LabelControls = ({ onReplace, onRemove, disabled }) => {
   );
 };
 
-const LabelLog = ({ terminal, indicator, metaTransition, requestNewLabel }) => {
+const LabelLog = ({
+  terminalKey,
+  terminal,
+  range,
+  indicator,
+  metaTransition,
+  requestNewLabel,
+  onLabelClicked,
+}) => {
   const [indicatorState, setIndicatorState] = useState(0);
   const [disabled, setDisabled] = useState(false);
+
+  useEffect(() => {
+    const bump = () => {
+      terminal.bump(terminalKey);
+    };
+
+    onLabelClicked.add(range, bump);
+    return () => {
+      onLabelClicked.remove(range, bump);
+    };
+  }, []);
 
   const replaceLabel = () => {
     requestNewLabel(indicator.completedLabel, (newLabel) => {
@@ -509,8 +532,11 @@ export const reloadLabels = (clipfics) => {
   const div = clipfics.storyContainerRef.current;
   const pendingLabels = new Map();
 
+  console.log(div);
+
   div.querySelectorAll('[data-cookiesynth]').forEach((e) => {
     let label = e.dataset.cookiesynth;
+    console.log('parsing', label);
     if (label.length === 0) {
       return;
     }

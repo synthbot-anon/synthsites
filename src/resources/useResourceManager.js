@@ -21,7 +21,7 @@ const FileExportButon = ({ getDownloadBlob }) => {
     a.click();
   };
   return (
-    <Button className={classes['c-fileio-export-button']} onClick={download}>
+    <Button className={classes['c-fileio-export-button']} variant="contained" component="span" onClick={download}>
       Export labels
     </Button>
   );
