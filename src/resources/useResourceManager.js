@@ -5,6 +5,12 @@ import local from './local.js';
 import { Button, Grid } from '@material-ui/core';
 import { ThemeContext } from 'theme.js';
 
+const EXTENSION = '([^.]+)'
+const SUFFIX = '(?:\\s*\\(\\d*\\)\\s*)?'
+const PREFIX = '(?:label(?:ed|s)?(?:\\s*[-_]*\\s*))?';
+const FILENAME = '[^(.]*';
+const FILENAME_REGEX = new RegExp(`^${PREFIX}(${FILENAME})${SUFFIX}\\.(${EXTENSION})$`);
+
 /**
  * Button to export a labeled story file, which is not what it does at the moment.
  * This currently highlights the selected text. Note that this will highlight ANY
@@ -17,7 +23,16 @@ const FileExportButon = ({ getDownloadBlob }) => {
     const { name, content } = getDownloadBlob();
     const a = document.createElement('a');
     a.setAttribute('href', window.URL.createObjectURL(content));
-    a.download = `labeled - ${name}`;
+
+    const match = FILENAME_REGEX.exec(name);
+
+    if (match) {
+      const [,fileName, extension] = match;
+      a.download = `labeled - ${fileName.trim()}.${extension.trim()}`;
+    } else {
+      a.download = `labeled - ${name}`;
+    }
+
     a.click();
   };
   return (

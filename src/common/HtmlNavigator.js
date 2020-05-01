@@ -393,3 +393,12 @@ export const getSectionRange = (section) => {
 
   return result;
 };
+
+export const getContainingSection = (node) => {
+  let result = node;
+  while (!SECTION_NAMES.has(result.nodeName)) {
+    result = result.parentNode;
+  }
+
+  return result;
+}

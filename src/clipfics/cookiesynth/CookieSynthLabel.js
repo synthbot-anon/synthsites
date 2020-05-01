@@ -176,7 +176,7 @@ const KNOWN_DESCRIPTIONS = [
   ),
   new DefaultDescription(
     'voiced style="?"',
-    'Label speech for sound effects (subvocalized, memory, royal canterlot voice)',
+    'Label speech for sound effects (subvocalized, memory, royal canterlot voice, muted)',
   ),
 ];
 
@@ -192,6 +192,7 @@ PROP_HINTS.set('pitch', 'low, high');
 PROP_HINTS.set('pause-before', 'none, weak, medium, strong');
 PROP_HINTS.set('pause-after', 'none, weak, medium, strong');
 PROP_HINTS.set('balance', 'left, center, right, left-to-center, left-to-right, etc.');
+PROP_HINTS.set('style', 'subvocalized, memory, royal canterlot voice, muted');
 PROP_HINTS.set('pronunciation', 'e.g., Dear Princess {S AH0 L EH1 S T IY0 AH2}');
 
 export const getLabelDescription = (partialLabel) => {
@@ -439,10 +440,16 @@ class LabelIndicator {
     this.rangeUtils.prepend(this.startIndicator);
     this.rangeUtils.append(this.endIndicator);
 
+    let highlightRange = this.rangeUtils;
+
     const isMeta = getTypeFromLabel(this.completedLabel) === 'meta';
+    if (isMeta) {
+      highlightRange = highlightRange.limitChars(10);
+      console.log('highlighting range:', highlightRange.getText());
+    }
 
     // add the highlight
-    this.rangeUtils.apply((range) => {
+    highlightRange.apply((range) => {
       if (new RangeUtils(range).getText().length === 0) {
         return;
       }
@@ -554,8 +561,10 @@ export const reloadLabels = (clipfics) => {
         const range = new Range();
         range.setStartAfter(e);
         range.setEndBefore(e);
+
+        const metaRange = new RangeUtils(range).fillToCharCount(10).range;
         e.parentNode.removeChild(e);
-        new CookieSynthLabel(range, label).injectLabel(clipfics);
+        new CookieSynthLabel(metaRange, label).injectLabel(clipfics);
         return;
       }
       const typeStack = pendingLabels.get(openLabelType) || [];

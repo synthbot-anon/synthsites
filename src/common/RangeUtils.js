@@ -2,11 +2,13 @@
  * Utility functions for dealing with Range objects.
  */
 
+import { getSectionOffset, getSectionNode } from 'common/HtmlNavigator.js';
+
 /**
  * Wrap a Range object and treat it as a sequence of leaf nodes over a DOM tree.
  */
 export default class RangeUtils {
-  #range;
+  range;
   #startNode;
   #startOffset;
   #endNode;
@@ -21,7 +23,7 @@ export default class RangeUtils {
   constructor(range) {
     const { startContainer, startOffset, endContainer, endOffset } = range;
 
-    this.#range = range;
+    this.range = range;
     this.#startNode = startContainer;
     this.#startOffset = startOffset;
     this.#endNode = endContainer;
@@ -56,13 +58,43 @@ export default class RangeUtils {
     this.#endingPoint.insertNode(node);
   }
 
+  limitChars(maxCharCount) {
+    const thisCharCount = this.getText().length;
+    if (thisCharCount <= maxCharCount) {
+      return this;
+    }
+
+    const ancestor = this.range.commonAncestorContainer; 
+    const startOffset = getSectionOffset(ancestor, this.range.startContainer, this.range.startOffset);
+    const start = getSectionNode(ancestor, startOffset);
+    const end = getSectionNode(ancestor, startOffset + maxCharCount);
+
+    const resultRange = new Range();
+    resultRange.setStart(start.node, start.offset);
+    resultRange.setEnd(end.node, end.offset);
+    return new RangeUtils(resultRange);
+  }
+
+  fillToCharCount(minCharCount) {
+    const ancestor = this.range.commonAncestorContainer; 
+    const startOffset = getSectionOffset(ancestor, this.range.startContainer, this.range.startOffset);
+    const start = getSectionNode(ancestor, startOffset);
+    const end = getSectionNode(ancestor, startOffset + minCharCount);
+
+    const resultRange = new Range();
+    resultRange.setStart(start.node, start.offset);
+    resultRange.setEnd(end.node, end.offset);
+    return new RangeUtils(resultRange); 
+  }
+
   /**
    * Apply a function to each DOM leaf node within this range.
    * @param fn (leafRangeObject) => {...}
+   * @param charLimit maximimum number of characters to surround
    */
   apply(fn) {
     const leafNodes = [];
-    const uncheckedNodes = [this.#range.commonAncestorContainer];
+    const uncheckedNodes = [this.range.commonAncestorContainer];
 
     while (uncheckedNodes.length !== 0) {
       const nextNode = uncheckedNodes.pop();
@@ -85,25 +117,25 @@ export default class RangeUtils {
     const leafRange = new Range();
     leafNodes.forEach((leaf) => {
       leafRange.selectNode(leaf);
-      if (this.#range.compareBoundaryPoints(Range.END_TO_START, leafRange) === 1) {
+      if (this.range.compareBoundaryPoints(Range.END_TO_START, leafRange) === 1) {
         return;
       }
-      if (this.#range.compareBoundaryPoints(Range.START_TO_END, leafRange) === -1) {
+      if (this.range.compareBoundaryPoints(Range.START_TO_END, leafRange) === -1) {
         return;
       }
 
       const resultRange = new Range();
       try {
         if (
-          this.#range.compareBoundaryPoints(Range.START_TO_START, leafRange) === -1
+          this.range.compareBoundaryPoints(Range.START_TO_START, leafRange) === -1
         ) {
           resultRange.setStart(leafRange.startContainer, leafRange.startOffset);
         } else {
-          resultRange.setStart(this.#range.startContainer, this.#range.startOffset);
+          resultRange.setStart(this.range.startContainer, this.range.startOffset);
         }
 
-        if (this.#range.compareBoundaryPoints(Range.END_TO_END, leafRange) === -1) {
-          resultRange.setEnd(this.#range.endContainer, this.#range.endOffset);
+        if (this.range.compareBoundaryPoints(Range.END_TO_END, leafRange) === -1) {
+          resultRange.setEnd(this.range.endContainer, this.range.endOffset);
         } else {
           resultRange.setEnd(leafRange.endContainer, leafRange.endOffset);
         }
@@ -116,7 +148,7 @@ export default class RangeUtils {
   }
 
   compareTo(otherRange, how) {
-    return this.#range.compareBoundaryPoints(how, otherRange);
+    return this.range.compareBoundaryPoints(how, otherRange);
   }
 
   /**
@@ -130,7 +162,7 @@ export default class RangeUtils {
    */
   getText(startChars, endChars) {
     const div = document.createElement('div');
-    div.appendChild(this.#range.cloneContents());
+    div.appendChild(this.range.cloneContents());
     const contents = div.textContent;
 
     if (!startChars) {
@@ -154,6 +186,6 @@ export default class RangeUtils {
   }
 
   setSelection(containerSelection) {
-    containerSelection.setRange(this.#range);
+    containerSelection.setRange(this.range);
   }
 }

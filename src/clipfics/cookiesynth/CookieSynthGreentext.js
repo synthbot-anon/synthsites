@@ -58,7 +58,7 @@ export const htmlToGreen = (node) => {
   });
 
   // return clone.childNodes[0].nodeValue;
-  return textLines.join("");
+  return textLines.join("\n");
 };
 
 export default ({ children }) => {
