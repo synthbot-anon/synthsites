@@ -273,7 +273,13 @@ export default class CookieSynthLabel {
   }
 
   injectLabel(clipfics) {
-    const { terminal, selection, requestNewLabel, metaReplay, onLabelClicked } = clipfics;
+    const {
+      terminal,
+      selection,
+      requestNewLabel,
+      metaReplay,
+      onLabelClicked,
+    } = clipfics;
     let completedLabel = this.getCompletedLabel();
 
     if (!isLabelValid(completedLabel)) {
@@ -392,8 +398,8 @@ class LabelIndicator {
   rangeUtils;
   selection;
   completedLabel;
-  startIndicator = document.createElement('span');
-  endIndicator = document.createElement('span');
+  startIndicator;
+  endIndicator;
   highlightNodes = [];
 
   constructor(rangeUtils, selection, completedLabel) {
@@ -406,18 +412,34 @@ class LabelIndicator {
   }
 
   updateTags(tagStart, tagEnd) {
-    this.startIndicator.setAttribute('data-cookiesynth', tagStart || '');
-    this.endIndicator.setAttribute('data-cookiesynth', tagEnd || '');
+    if (this.startIndicator && !tagStart) {
+      this.startIndicator.remove();
+      this.startIndicator = null;
+    } else if (tagStart && !this.startIndicator) {
+      this.startIndicator = document.createElement('span');
+      this.startIndicator.setAttribute('data-cookiesynth', tagStart);
+      this.rangeUtils.prepend(this.startIndicator);
+    } else if (this.startIndicator && tagStart) {
+      this.startIndicator.setAttribute('data-cookiesynth', tagStart);
+    }
 
-    const highlightClass = getTypeFromLabel(this.completedLabel) === 'meta';
-
-    this.highlightNodes.forEach((n) => n.setAttribute('class', highlightClass));
+    if (this.endIndicator && !tagEnd) {
+      this.endIndicator.remove();
+      this.endIndicator = null;
+    } else if (tagEnd && !this.endIndicator) {
+      this.endIndicator = document.createElement('span');
+      this.endIndicator.setAttribute('data-cookiesynth', tagEnd);
+      this.rangeUtils.append(this.endIndicator);
+    } else if (this.endIndicator && tagEnd) {
+      this.endIndicator.setAttribute('data-cookiesynth', tagEnd);
+    }
   }
 
   updateLabel(newLabel) {
     this.completedLabel = newLabel;
     const [tagStart, tagEnd] = getTagsFromLabel(newLabel);
     this.updateTags(tagStart, tagEnd);
+    this.updateHighlight();
   }
 
   highlightMeta(range) {
@@ -437,15 +459,18 @@ class LabelIndicator {
   }
 
   inject() {
-    this.rangeUtils.prepend(this.startIndicator);
-    this.rangeUtils.append(this.endIndicator);
+    this.updateHighlight();
+  }
+
+  updateHighlight() {
+    this.highlightNodes.forEach((n) => n.replaceWith(...n.childNodes));
+    this.highlightNodes = [];
 
     let highlightRange = this.rangeUtils;
 
     const isMeta = getTypeFromLabel(this.completedLabel) === 'meta';
     if (isMeta) {
       highlightRange = highlightRange.limitChars(10);
-      console.log('highlighting range:', highlightRange.getText());
     }
 
     // add the highlight
@@ -539,11 +564,9 @@ export const reloadLabels = (clipfics) => {
   const div = clipfics.storyContainerRef.current;
   const pendingLabels = new Map();
 
-  console.log(div);
-
   div.querySelectorAll('[data-cookiesynth]').forEach((e) => {
     let label = e.dataset.cookiesynth;
-    console.log('parsing', label);
+    console.log('applying label:', label);
     if (label.length === 0) {
       return;
     }
