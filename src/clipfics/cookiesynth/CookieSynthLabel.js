@@ -168,7 +168,7 @@ const KNOWN_DESCRIPTIONS = [
   ),
   new DefaultDescription(
     'positioned balance="?"',
-    'Label where a characer is speaking from (e.g., left, right)',
+    'Label where a character is speaking from (e.g., left, right)',
   ),
   new DefaultDescription(
     'voiced pronunciation="?"',
