@@ -11,36 +11,6 @@ const PREFIX = '(?:label(?:ed|s)?(?:\\s*[-_]*\\s*))?';
 const FILENAME = '[^(.]*';
 const FILENAME_REGEX = new RegExp(`^${PREFIX}(${FILENAME})${SUFFIX}\\.(${EXTENSION})$`);
 
-/**
- * Button to export a labeled story file, which is not what it does at the moment.
- * This currently highlights the selected text. Note that this will highlight ANY
- * text selected on the page, not just story text.
- */
-const FileExportButon = ({ getDownloadBlob }) => {
-  const { classes } = useContext(ThemeContext);
-
-  const download = () => {
-    const { name, content } = getDownloadBlob();
-    const a = document.createElement('a');
-    a.setAttribute('href', window.URL.createObjectURL(content));
-
-    const match = FILENAME_REGEX.exec(name);
-
-    if (match) {
-      const [,fileName, extension] = match;
-      a.download = `labeled - ${fileName.trim()}.${extension.trim()}`;
-    } else {
-      a.download = `labeled - ${name}`;
-    }
-
-    a.click();
-  };
-  return (
-    <Button className={classes['c-fileio-export-button']} variant="contained" component="span" onClick={download}>
-      Export labels
-    </Button>
-  );
-};
 
 class ResourceManager {
   terminal;
@@ -63,7 +33,7 @@ class ResourceManager {
   unregisterResourceHandler(type, createResourceView) {
     let typeHandlers = this.resourceHandlers.get(type);
     typeHandlers = typeHandlers.filter((x) => x[0] !== createResourceView);
-    this.current.resourceHandlers.set(type, typeHandlers);
+    this.resourceHandlers.set(type, typeHandlers);
     // TODO: check if the current resource display uses this type
     // if yes, then clear it
   }
@@ -135,6 +105,10 @@ const Display = ({ resourceManager }) => {};
 export default (terminal) => {
   const resourceManager = useRef(new ResourceManager(terminal));
 
+  useEffect(() => {
+
+  });
+
   const ResourcePane = () => {
     const { forceUpdate } = useForceUpdate();
 
@@ -171,12 +145,34 @@ export default (terminal) => {
             resourceManager.current.loadResource(entries[0]);
           }}
         />
-        <FileExportButon
-          getDownloadBlob={() => {
-            return resourceManager.current.getResourceState();
-          }}
-        />
+        <FileExportButon />
       </Grid>
+    );
+  };
+
+  const download = () => {
+    const { name, content } = resourceManager.current.getResourceState();
+    const a = document.createElement('a');
+    a.setAttribute('href', window.URL.createObjectURL(content));
+
+    const match = FILENAME_REGEX.exec(name);
+
+    if (match) {
+      const [,fileName, extension] = match;
+      a.download = `labeled - ${fileName.trim()}.${extension.trim()}`;
+    } else {
+      a.download = `labeled - ${name}`;
+    }
+
+    a.click();
+  };
+
+  const FileExportButon = ({ getDownloadBlob }) => {
+    const { classes } = useContext(ThemeContext);
+    return (
+      <Button className={classes['c-fileio-export-button']} variant="contained" component="span" onClick={download}>
+        Export labels
+      </Button>
     );
   };
 
@@ -187,5 +183,5 @@ export default (terminal) => {
     },
   ];
 
-  return { ResourcePane, resourceManager: resourceManager.current, tabs };
+  return { download, ResourcePane, resourceManager: resourceManager.current, tabs };
 };

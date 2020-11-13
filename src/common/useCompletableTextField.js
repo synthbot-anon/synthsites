@@ -1,58 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { TextField } from '@material-ui/core';
-
-const CompletableTextFieldComponent = ({ inputRef, onComplete, value, ...other }) => {
-  const normalizedValue = value || '';
-  const [displayValue, setDisplayValue] = useState(normalizedValue);
-
-  useEffect(() => {
-    inputRef.setDisplayValue = setDisplayValue;
-
-    return () => {
-      inputRef.setDisplayValue = null;
-    };
-  }, [inputRef]);
-
-  useEffect(() => {
-    setDisplayValue(normalizedValue);
-  }, [normalizedValue]);
-
-  const onSubmitted = (e) => {
-    e.preventDefault();
-    onComplete(displayValue);
-    setDisplayValue('');
-  };
-
-  return (
-    <form onSubmit={onSubmitted}>
-      <TextField
-        inputRef={(input) => {
-          inputRef.current = input;
-        }}
-        {...other}
-        value={displayValue}
-        onChange={(e) => setDisplayValue(e.target.value)}
-      />
-    </form>
-  );
-};
+import synthComponent, { synthSubscription } from 'common/synthComponent.js';
+import useForceUpdateControl from 'common/useForceUpdateControl.js';
 
 export default () => {
-  const [inputRef] = useState({});
+  const { api, components, internal } = synthComponent();
+  internal.value = '';
 
-  const getValue = () => {
-    return inputRef.current && inputRef.current.value;
+  api.getValue = () => {
+    return internal.value;
   };
 
-  const setValue = (value) => {
-    inputRef.setDisplayValue(value);
+  api.setValue = (value) => {
+    internal.value = value;
   };
+
+  const CompletableTextField = ({ onComplete, value, ...other }) => {
+    const [displayValue, setDisplayValue] = useState(value || '');
+
+    const onSubmitted = (e) => {
+      e.preventDefault();
+      internal.value = displayValue;
+      onComplete(displayValue);
+    };
+
+    return (
+      <form onSubmit={onSubmitted}>
+        <TextField
+          {...other}
+          value={displayValue}
+          onChange={(e) => {
+            internal.value = e.target.value;
+            setDisplayValue(e.target.value);
+          }}
+        />
+      </form>
+    );
+  };
+  components.CompletableTextField = CompletableTextField;
 
   return {
-    CompletableTextField: (props) => (
-      <CompletableTextFieldComponent inputRef={inputRef} {...props} />
-    ),
-    getValue,
-    setValue,
+    api,
+    components,
   };
 };

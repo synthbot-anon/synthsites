@@ -42,26 +42,30 @@ const matchesToString = (matches) => {
  *
  * WARNING: This assumes that no key is repeated.
  */
-class DefaultDescription {
+export class TemplateDescription {
   #description;
-  #type;
-  #properties;
-  #values;
+  type;
+  properties;
+  values;
 
   constructor(partialLabel, description) {
     this.#description = description;
-    this.#type = getTypeFromLabel(partialLabel);
-    this.#properties = matchesToString(getAllProperties(partialLabel));
-    this.#values = matchesToString(getAllValues(partialLabel));
+    this.type = getTypeFromLabel(partialLabel);
+    this.properties = matchesToString(getAllProperties(partialLabel));
+    this.values = matchesToString(getAllValues(partialLabel));
 
-    if (new Set(this.#properties).size !== this.#properties.length) {
+    if (new Set(this.properties).size !== this.properties.length) {
       console.log(
-        'WARNING: DefaultDescription does not work with duplicate properties',
+        'WARNING: TemplateDescription does not work with duplicate properties',
       );
     }
   }
 
   getDescription(targetLabel) {
+    if (!targetLabel) {
+      return '';
+    }
+
     let result = this.#description;
 
     const targetType = getTypeFromLabel(targetLabel);
@@ -70,16 +74,16 @@ class DefaultDescription {
 
     if (new Set(targetProps).size !== targetProps.length) {
       console.log(
-        'WARNING: DefaultDescription does not work with duplicate properties',
+        'WARNING: TemplateDescription does not work with duplicate properties',
       );
       return null;
     }
 
     // Easy check by type and lengths. We'll assume these match later.
     if (
-      targetType !== this.#type ||
-      targetProps.length !== this.#properties.length ||
-      targetValues.length !== this.#values.length
+      targetType !== this.type ||
+      targetProps.length !== this.properties.length ||
+      targetValues.length !== this.values.length
     ) {
       return null;
     }
@@ -91,9 +95,9 @@ class DefaultDescription {
     }
 
     // Check all properties and values
-    for (let i = 0; i < this.#properties.length; i++) {
-      const prop = this.#properties[i];
-      const val = this.#values[i];
+    for (let i = 0; i < this.properties.length; i++) {
+      const prop = this.properties[i];
+      const val = this.values[i];
 
       if (!(prop in targetDict)) {
         // We're missing a property. It can't be a match.
@@ -122,93 +126,6 @@ class DefaultDescription {
     return result;
   }
 }
-
-const KNOWN_DESCRIPTIONS = [
-  new DefaultDescription(
-    'meta element="narrator" character="?"',
-    'Change the narrator',
-  ),
-  new DefaultDescription('spoken character="?"', 'Label the speaker'),
-  new DefaultDescription(
-    'spoken character="{character}"',
-    'Label speaker as {character}',
-  ),
-  new DefaultDescription(
-    'meta character="?" age="?" gender="?"',
-    'Create a new character',
-  ),
-  new DefaultDescription('spoken emotion="?"', 'Label the emotion'),
-  new DefaultDescription(
-    'spoken emotion="{emotion}"',
-    'Label the emotion as {emotion}',
-  ),
-  new DefaultDescription(
-    'meta character="{character}" emotion="?"',
-    "Change {character}'s default emotion",
-  ),
-  new DefaultDescription(
-    'meta character="?" emotion="{emotion}"',
-    "Change a character's default emotion to {emotion}",
-  ),
-  new DefaultDescription(
-    'meta character="?" emotion="?"',
-    "Change a character's default emotion",
-  ),
-  new DefaultDescription(
-    'tuned rate="?" stress="?" volume="?" pitch="?"',
-    'Tune how a phrase is spoken (rate, stress, volume, pitch)',
-  ),
-  new DefaultDescription(
-    'meta character="?" rate="?" volume="?" pitch="?"',
-    "Change a character's default tuning",
-  ),
-  new DefaultDescription(
-    'timed pause-before="?" pause-after="?"',
-    'Add a pause before or after a phrase',
-  ),
-  new DefaultDescription(
-    'positioned balance="?"',
-    'Label where a character is speaking from (e.g., left, right)',
-  ),
-  new DefaultDescription(
-    'voiced pronunciation="?"',
-    'Manually label how to pronounce a phrase',
-  ),
-  new DefaultDescription(
-    'voiced style="?"',
-    'Label speech for sound effects (subvocalized, memory, royal canterlot voice, muted)',
-  ),
-];
-
-const PROP_HINTS = new Map();
-PROP_HINTS.set('character', 'e.g., Twilight Sparkle');
-PROP_HINTS.set('age', 'baby, foal, teen, adult, elder');
-PROP_HINTS.set('gender', 'male, female, neutral');
-PROP_HINTS.set('emotion', 'e.g., excited');
-PROP_HINTS.set('rate', 'fast, slow');
-PROP_HINTS.set('stress', 'none, strong, moderate, reduced');
-PROP_HINTS.set('volume', 'whisper, soft, medium, loud, x-loud');
-PROP_HINTS.set('pitch', 'low, high');
-PROP_HINTS.set('pause-before', 'none, weak, medium, strong');
-PROP_HINTS.set('pause-after', 'none, weak, medium, strong');
-PROP_HINTS.set('balance', 'left, center, right, left-to-center, left-to-right, etc.');
-PROP_HINTS.set('style', 'subvocalized, memory, royal canterlot voice, muted');
-PROP_HINTS.set('pronunciation', 'e.g., Dear Princess {S AH0 L EH1 S T IY0 AH2}');
-
-export const getLabelDescription = (partialLabel) => {
-  for (let knownDesc of KNOWN_DESCRIPTIONS) {
-    const result = knownDesc.getDescription(partialLabel);
-    if (result) {
-      return result;
-    }
-  }
-
-  return null;
-};
-
-export const getLabelHint = (property) => {
-  return PROP_HINTS.get(property);
-};
 
 export default class CookieSynthLabel {
   missingTemplateProperties = [];
@@ -272,14 +189,8 @@ export default class CookieSynthLabel {
     return this.completedLabel;
   }
 
-  injectLabel(clipfics) {
-    const {
-      terminal,
-      selection,
-      requestNewLabel,
-      metaReplay,
-      onLabelClicked,
-    } = clipfics;
+  injectLabel(clipfics, requestNewLabel) {
+    const { terminal, selection, metaReplay, onLabelClicked } = clipfics.api;
     let completedLabel = this.getCompletedLabel();
 
     if (!isLabelValid(completedLabel)) {
@@ -560,8 +471,8 @@ class MetaTransition {
 }
 
 export const reloadLabels = (clipfics) => {
-  const { terminal } = clipfics;
-  const div = clipfics.storyContainerRef.current;
+  const { terminal } = clipfics.api;
+  const div = clipfics.api.storyContainerRef.current;
   const pendingLabels = new Map();
 
   div.querySelectorAll('[data-cookiesynth]').forEach((e) => {

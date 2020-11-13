@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import synthComponent from 'common/synthComponent.js';
 
 export default class ContainerSelection {
   #containerRef;
@@ -95,19 +96,20 @@ const isRangeWithin = (selectionRange, container) => {
 };
 
 export const useSelectionCache = (selection) => {
-  let [savedRange, setSavedRange] = useState(null);
+  const { api } = synthComponent();
+  api.savedRange = null;
 
-  const saveSelection = () => {
-    setSavedRange((savedRange = selection.getRange()));
+  api.saveSelection = () => {
+    api.savedRange = selection.getRange();
   };
 
-  const restoreSelection = () => {
-    if (savedRange === null) {
+  api.restoreSelection = () => {
+    if (api.savedRange === null) {
       return;
     }
 
-    selection.setRange(savedRange);
+    selection.setRange(api.savedRange);
   };
 
-  return { saveSelection, restoreSelection };
+  return { api };
 };

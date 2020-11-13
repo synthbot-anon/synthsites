@@ -21,8 +21,9 @@ import { ThemeContext, useStyles, theme } from './theme.js';
 import { ClipficsContext } from './tasks.js';
 import Terminal from 'common/Terminal.js';
 import useClipficsTask from 'tasks/useClipficsTask.js';
-import useForceUpdate from 'common/useForceUpdate.js';
+import useForceUpdateControl from 'common/useForceUpdateControl.js';
 import useResourceManager from 'resources/useResourceManager.js';
+import synthComponent, { synthSubscription } from 'common/synthComponent.js';
 
 /**
  * Navigation bar at the top of the site. This doesn't serve any functional purpose at
@@ -52,32 +53,23 @@ const TabPanel = ({ children, size, value, index, ...other }) => (
 );
 
 const useTabs = () => {
-  const [context] = useState(() => {
-    return {
-      tabLabels: [],
-      tabPanels: [],
-    };
-  });
+  const { api, components, internal } = synthComponent();
+
+  internal.tabLabels = [];
+  internal.tabPanels = [];
+  internal.subscription = synthSubscription();
 
   const addTab = (label, panel) => {
-    context.tabLabels.push(label);
-    context.tabPanels.push(panel);
-
-    if (context.updateTabDisplay) {
-      context.updateTabDisplay();
-    }
+    internal.tabLabels.push(label);
+    internal.tabPanels.push(panel);
+    internal.subscription.broadcast();
   };
 
   const TabBar = (props) => {
     const [selectedTab, setSelectedTab] = useState(0);
-    const { forceUpdate } = useForceUpdate();
+    const { forceUpdate } = useForceUpdateControl();
 
-    useEffect(() => {
-      context.updateTabDisplay = forceUpdate;
-      return () => {
-        context.updateTabDisplay = null;
-      };
-    });
+    internal.subscription.useSubscription(forceUpdate);
 
     const onTabSelected = (event, newValue) => {
       setSelectedTab(newValue);
@@ -87,16 +79,16 @@ const useTabs = () => {
       <div>
         <Toolbar>
           <Tabs variant="scrollable" value={selectedTab} onChange={onTabSelected}>
-            {context.tabLabels.map((label, index) => (
+            {internal.tabLabels.map((label, index) => (
               <Tab key={index} label={label} />
             ))}
           </Tabs>
         </Toolbar>
 
-        {context.tabPanels.map((Panel, index) => (
+        {internal.tabPanels.map((Panel, index) => (
           <TabPanel
             key={index}
-            size={context.tabPanels.length}
+            size={internal.tabPanels.length}
             value={selectedTab}
             index={index}
           >
@@ -118,25 +110,36 @@ const App = () => {
   const themeContext = {
     classes: useStyles(theme),
   };
-
   const classes = themeContext.classes;
+
   const terminal = new Terminal();
   const { TabBar, addTab } = useTabs();
 
-  terminal.log('hello, anonymous.');
-  terminal.log('do you need help using this interface?');
-
   const TerminalDisplay = terminal.Component;
   const {
+    download,
     ResourcePane,
     resourceManager,
     tabs: resourceManagerTabs,
   } = useResourceManager(terminal);
 
-  const { taskContext, tabs: clipficsTabs } = useClipficsTask(
-    resourceManager,
-    terminal,
-  );
+  useEffect(() => {
+    const ctrlS = (e) => {
+      if (e.key === "s" && e.ctrlKey) {
+        download();
+        e.preventDefault();
+      }
+    }
+
+    document.addEventListener("keydown", ctrlS);
+    return () => {
+      document.removeEventListener("keydown", ctrlS);
+    }
+  });
+
+  const clipfics = useClipficsTask(resourceManager, terminal);
+
+  const clipficsTabs = clipfics.tabs;
 
   for (let { label, panel } of clipficsTabs) {
     addTab(label, panel);
@@ -150,7 +153,7 @@ const App = () => {
     <ThemeContext.Provider value={themeContext}>
       <div id="app" className={classes['c-app--full-height']}>
         <NavigationBar />
-        <ClipficsContext.Provider value={taskContext}>
+        <ClipficsContext.Provider value={clipfics}>
           <Grid container spacing={2}>
             <Grid item xs={7} className={classes['c-story-panel--full-height']}>
               <ResourcePane />

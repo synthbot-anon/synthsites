@@ -1,5 +1,5 @@
 import React, { useEffect, useContext } from 'react';
-import { useClipfics } from 'tasks.js';
+import { useClipficsContext } from 'tasks.js';
 import TitledBox from 'common/TitledBox';
 import { splitAssignment } from './cookiesynth/common.js';
 import { Typography, Link } from '@material-ui/core';
@@ -290,7 +290,7 @@ export class Meta {
 }
 
 export const MetaDisplay = () => {
-  const clipfics = useClipfics();
+  const clipfics = useClipficsContext();
   const { forceUpdate } = useForceUpdate();
   const { classes } = useContext(ThemeContext);
 
@@ -298,19 +298,19 @@ export const MetaDisplay = () => {
     const onReplayUpdated = () => {
       forceUpdate();
     };
-    clipfics.metaReplay.registerOnUpdate(onReplayUpdated);
+    clipfics.api.metaReplay.registerOnUpdate(onReplayUpdated);
 
     return () => {
-      clipfics.metaReplay.unregisterOnUpdate(onReplayUpdated);
+      clipfics.api.metaReplay.unregisterOnUpdate(onReplayUpdated);
     };
   });
 
-  const range = clipfics.selection.useRange();
+  const range = clipfics.api.selection.useRange();
   if (!range) {
     return <div className={classes['c-metareplay-box']} />;
   }
 
-  const meta = clipfics.metaReplay.get(range);
+  const meta = clipfics.api.metaReplay.get(range);
   if (!meta) {
     return <div className={classes['c-metareplay-box']} />;
   }
@@ -329,8 +329,8 @@ export const MetaDisplay = () => {
     const requiredData = [];
 
     const bumpRelevantLog = () => {
-      const relevantRange = clipfics.metaReplay.getAssignmentRange(range, targetKey);
-      clipfics.onLabelClicked.getAll(relevantRange).forEach((f) => f());
+      const relevantRange = clipfics.api.metaReplay.getAssignmentRange(range, targetKey);
+      clipfics.api.onLabelClicked.getAll(relevantRange).forEach((f) => f());
     }
 
     data.forEach((value, prop) => {

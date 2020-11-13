@@ -1,353 +1,900 @@
-import React, { useState, useContext, useRef } from 'react';
+import React, { useState, useContext, useRef, useEffect } from 'react';
 import { ThemeContext } from 'theme.js';
-import { useClipfics } from 'tasks.js';
-import TextFieldModal from 'common/TextFieldModal.js';
+// import { useClipficsContext } from 'tasks.js';
+import useTextFieldModal from 'common/useTextFieldModal.js';
 import { useSelectionCache } from 'common/ContainerSelection.js';
-import useModalControls from 'common/useModalControls.js';
-import useLoopControls from 'common/useLoopControls.js';
+import useModal from 'common/useModal.js';
+import useForEachLoop from 'common/useForEachLoop.js';
 import useInitializer from 'common/useInitializer.js';
 import CookieSynthLabel, {
-  getLabelDescription,
-  getLabelHint,
+  TemplateDescription,
 } from './cookiesynth/CookieSynthLabel.js';
 import { isLabelValid } from './cookiesynth/common.js';
-import { useCreateNewHotkey } from 'common/Hotkeys.js';
 import RangeUtils from 'common/RangeUtils.js';
 import { Button } from '@material-ui/core';
+import synthComponent, { synthSubscription } from 'common/synthComponent.js';
+import useForceUpdateControl from 'common/useForceUpdateControl.js';
+import useFixedOptionsModal, { FixedOptions } from 'common/useFixedOptionsModal.js';
+import useAutocompleteModal, {
+  AutocompleteOptions,
+} from 'common/useAutocompleteModal.js';
 
-const Hotkey = ({ hotkeys, shortcut, description, disabled, restore }) => {
+const PROP_HINTS = new Map();
+PROP_HINTS.set('character', 'e.g., Twilight Sparkle');
+PROP_HINTS.set('age', 'baby, foal, teen, adult, elder');
+PROP_HINTS.set('gender', 'male, female');
+PROP_HINTS.set('emotion', 'e.g., excited');
+PROP_HINTS.set('rate', 'fast, medium, slow');
+PROP_HINTS.set('stress', 'none, strong, moderate, reduced');
+PROP_HINTS.set('volume', 'whisper, soft, medium, loud, x-loud');
+PROP_HINTS.set('pitch', 'low, high');
+PROP_HINTS.set('pause-before', 'none, weak, medium, strong');
+PROP_HINTS.set('pause-after', 'none, weak, medium, strong');
+PROP_HINTS.set('balance', 'left, center, right, left-to-center, left-to-right, etc.');
+PROP_HINTS.set('effects', 'subvocalized, memory, royal canterlot voice, muted');
+PROP_HINTS.set('pronunciation', 'e.g., Dear Princess {S AH0 L EH1 S T IY0 AH2}');
+
+/*
+  active hotkey -> label specification
+  label specification {
+    template
+  }
+
+  parameter setter:
+    template -> parameters -> dialog sequence
+  
+  description getter:
+    template -> description  
+*/
+
+class AllowedValues {
+  knownOptions = new Map();
+
+  constructor() {
+    this.knownOptions.set(
+      'character',
+      new AutocompleteOptions()
+        .addOption('Adagio Dazzle')
+        .addOption('Ahuizotl')
+        .addOption('AK Yearling')
+        .addOption('All Aboard')
+        .addOption('Apple Bloom')
+        .addOption('Apple Cobbler')
+        .addOption('Applejack')
+        .addOption('Apple Rose')
+        .addOption('Aria Blaze')
+        .addOption('Arizona')
+        .addOption('Aunt Holiday')
+        .addOption('Auntie Applesauce')
+        .addOption('Auntie Lofty')
+        .addOption('Autumn Blaze')
+        .addOption('Babs Seed')
+        .addOption('Big Bucks')
+        .addOption('Big Daddy Mccolt')
+        .addOption('Big Macintosh')
+        .addOption('Biscuit')
+        .addOption('Blaze')
+        .addOption('Bow Hothoof')
+        .addOption('Boyle')
+        .addOption('Braeburn')
+        .addOption('Bright Mac')
+        .addOption('Bulk Biceps')
+        .addOption('Burnt Oak')
+        .addOption('Caballeron')
+        .addOption('Cadance')
+        .addOption('Canter Zoom')
+        .addOption('Capper')
+        .addOption('Captain Celaeno')
+        .addOption('Carnival Barker')
+        .addOption('Celestia')
+        .addOption('Cheerilee')
+        .addOption('Cheese Sandwich')
+        .addOption('Cherry Berry')
+        .addOption('Cherry Jubilee')
+        .addOption('Chestnut Magnifico')
+        .addOption('Chiffon Swirl')
+        .addOption('Chrysalis')
+        .addOption('Cinch')
+        .addOption('Clear Skies')
+        .addOption('Clear Sky')
+        .addOption('Cloudy Quartz')
+        .addOption('Coco Pommel')
+        .addOption('Code Red')
+        .addOption('Coriander Cumin')
+        .addOption('Countess Coloratura')
+        .addOption('Cozy Glow')
+        .addOption('Cranberry Muffin')
+        .addOption('Cranky')
+        .addOption('Daisy')
+        .addOption('Daybreaker')
+        .addOption('Derpy')
+        .addOption('Diamond Tiara')
+        .addOption('Discord')
+        .addOption('Donut Joe')
+        .addOption('Double Diamond')
+        .addOption('Dragon Lord Torch')
+        .addOption('Dr Fauna')
+        .addOption('Dr Hooves')
+        .addOption('Ember')
+        .addOption('Fancy Pants')
+        .addOption('Featherweight')
+        .addOption('Female Pony 2')
+        .addOption('Filthy Rich')
+        .addOption('Firelight')
+        .addOption('Flam')
+        .addOption('Flash Magnus')
+        .addOption('Flash Sentry')
+        .addOption('Fleetfoot')
+        .addOption('Flim')
+        .addOption('Flurry Heart')
+        .addOption('Fluttershy')
+        .addOption('Fred')
+        .addOption('Gabby')
+        .addOption('Gallus')
+        .addOption('Garble')
+        .addOption('Gilda')
+        .addOption('Gladmane')
+        .addOption('Gloriosa Daisy')
+        .addOption('Goldgrape')
+        .addOption('Goldie Delicious')
+        .addOption('Grampa Gruff')
+        .addOption('Grand Pear')
+        .addOption('Granny Smith')
+        .addOption('Grogar')
+        .addOption('Grubber')
+        .addOption('Gustave Le Grand')
+        .addOption('High Winds')
+        .addOption('Hoity Toity')
+        .addOption('Hoofar')
+        .addOption('Horsey')
+        .addOption('Igneous')
+        .addOption('Iron Will')
+        .addOption('Jack Pot')
+        .addOption('Juniper Montage')
+        .addOption('Lemon Hearts')
+        .addOption('Lemon Zest')
+        .addOption('Lighthoof')
+        .addOption('Lightning Dust')
+        .addOption('Lily Valley')
+        .addOption('Limestone')
+        .addOption('Lix Spittle')
+        .addOption('Louise')
+        .addOption('Luggage Cart')
+        .addOption('Luna')
+        .addOption('Luster Dawn')
+        .addOption('Lyra Heartstrings')
+        .addOption('Ma Hooffield')
+        .addOption('Mane Allgood')
+        .addOption('Mane-iac')
+        .addOption('Marble')
+        .addOption('Matilda')
+        .addOption('Maud')
+        .addOption('Mayor Mare')
+        .addOption('Meadowbrook')
+        .addOption('Mean Applejack')
+        .addOption('Mean Fluttershy')
+        .addOption('Mean Pinkie Pie')
+        .addOption('Mean Rainbow Dash')
+        .addOption('Mean Rarity')
+        .addOption('Mean Twilight Sparkle')
+        .addOption('Micro Chips')
+        .addOption('Midnight Sparkle')
+        .addOption('Minuette')
+        .addOption('Miss Harshwhinny')
+        .addOption('Mistmane')
+        .addOption('Misty Fly')
+        .addOption('Moon Dancer')
+        .addOption('Mori')
+        .addOption('Mr Cake')
+        .addOption('Mrs Cake')
+        .addOption('Mr Shy')
+        .addOption('Mrs Shy')
+        .addOption('Mudbriar')
+        .addOption('Mulia Mild')
+        .addOption('Mullet')
+        .addOption('Multiple')
+        .addOption('Neighsay')
+        .addOption('Night Glider')
+        .addOption('Night Light')
+        .addOption('Nightmare Moon')
+        .addOption('Nurse Redheart')
+        .addOption('Ocean Flow')
+        .addOption('Ocellus')
+        .addOption('Octavia')
+        .addOption('Oleander')
+        .addOption('On Stage')
+        .addOption('Party Favor')
+        .addOption('Pear Butter')
+        .addOption('Pharynx')
+        .addOption('Photo Finish')
+        .addOption('Photographer')
+        .addOption('Pig Creature 1')
+        .addOption('Pig Creature 2')
+        .addOption('Pinkie Pie')
+        .addOption('Pipsqueak')
+        .addOption('Pom')
+        .addOption('Pony Of Shadows')
+        .addOption('Prince Rutherford')
+        .addOption('Pursey Pink')
+        .addOption('Pushkin')
+        .addOption('Queen Novo')
+        .addOption('Quibble Pants')
+        .addOption('Rachel Platten')
+        .addOption('Rainbow Dash')
+        .addOption('Rain Shine')
+        .addOption('Rarity')
+        .addOption('Raspberry Beret')
+        .addOption('Rockhoof')
+        .addOption('Rolling Thunder')
+        .addOption('Rose')
+        .addOption('Rumble')
+        .addOption('s4e26 Unnamed Earth Mare #1')
+        .addOption('Saffron Masala')
+        .addOption('Sandalwood')
+        .addOption('Sandbar')
+        .addOption('Sans Smirk')
+        .addOption('Sapphire Shores')
+        .addOption('Sassy Saddles')
+        .addOption('Scootaloo')
+        .addOption('Seaspray')
+        .addOption('Shimmy Shake')
+        .addOption('Shining Armor')
+        .addOption('Short Fuse')
+        .addOption('Silver Spoon')
+        .addOption('Silverstream')
+        .addOption('Skeedaddle')
+        .addOption('Sky Beak')
+        .addOption('Skystar')
+        .addOption('Sky Stinger')
+        .addOption('Sludge')
+        .addOption('Smolder')
+        .addOption('Snails')
+        .addOption('Snap Shutter')
+        .addOption('Snips')
+        .addOption('Soarin')
+        .addOption('Sombra')
+        .addOption('Somnambula')
+        .addOption('Sonata Dusk')
+        .addOption('Songbird Serenade')
+        .addOption('Sour Sweet')
+        .addOption('Spike')
+        .addOption('Spitfire')
+        .addOption('Spoiled Rich')
+        .addOption('Spur')
+        .addOption('Starlight')
+        .addOption('Star Swirl')
+        .addOption('Stellar Flare')
+        .addOption('Steve')
+        .addOption('Storm Creature')
+        .addOption('Stormy Flare')
+        .addOption('Stygian')
+        .addOption('Sugar Belle')
+        .addOption('Sugarcoat')
+        .addOption('Sunburst')
+        .addOption('Sunny Flare')
+        .addOption('Sunset Shimmer')
+        .addOption('Surprise')
+        .addOption('Svengallop')
+        .addOption('Sweetie Belle')
+        .addOption('Sweetie Drops')
+        .addOption('Tempest Shadow')
+        .addOption('Terramar')
+        .addOption('The Storm King')
+        .addOption('Thorax')
+        .addOption('Thunderlane')
+        .addOption('Tianhuo')
+        .addOption('Tight End')
+        .addOption('Timber Spruce')
+        .addOption('Tirek')
+        .addOption('Toothy Klugetowner')
+        .addOption('Tourist Pony')
+        .addOption('Tree Hugger')
+        .addOption('Tree Of Harmony')
+        .addOption('Trixie')
+        .addOption('Trouble Shoes')
+        .addOption('Twilight Sparkle')
+        .addOption('Twilight Velvet')
+        .addOption('Twinkleshine')
+        .addOption('Twist')
+        .addOption('Vapor Trail')
+        .addOption('Velvet')
+        .addOption('Vendor 2')
+        .addOption('Vera')
+        .addOption('Verko')
+        .addOption('Vignette')
+        .addOption('Vinny')
+        .addOption('Wallflower')
+        .addOption('Whinnyfield')
+        .addOption('Wind Rider')
+        .addOption('Wind Sprint')
+        .addOption('Windy Whistles')
+        .addOption('Yona')
+        .addOption('Young Granny Smith')
+        .addOption('Zecora')
+        .addOption('Zephyr')
+        .addOption('Zesty Gourmand'),
+    );
+
+    this.knownOptions.set(
+      'emotion',
+      new AutocompleteOptions()
+        .addOption('Default')
+        .addOption('Amused')
+        .addOption('Angry')
+        .addOption('Annoyed')
+        .addOption('Anxious')
+        .addOption('Bored')
+        .addOption('Confused')
+        .addOption('Crazy')
+        .addOption('Curious')
+        .addOption('Disgust')
+        .addOption('Dizzy')
+        .addOption('Excited')
+        .addOption('Exhausted')
+        .addOption('Fear')
+        .addOption('Happy')
+        .addOption('Laughing')
+        .addOption('Love')
+        .addOption('Muffled')
+        .addOption('Nervous')
+        .addOption('Neutral')
+        .addOption('Sad')
+        .addOption('Sarcastic')
+        .addOption('Serious')
+        .addOption('Shouting')
+        .addOption('Singing')
+        .addOption('Smug')
+        .addOption('Surprised')
+        .addOption('Tired')
+        .addOption('Whining')
+        .addOption('Whispering'),
+    );
+
+    this.knownOptions.set(
+      'age',
+      new FixedOptions()
+        .addOption('1', 'Baby')
+        .addOption('2', 'Foal')
+        .addOption('3', 'Teen')
+        .addOption('4', 'Adult')
+        .addOption('5', 'Elder'),
+    );
+
+    this.knownOptions.set(
+      'gender',
+      new FixedOptions().addOption('1', 'Male').addOption('2', 'Female'),
+    );
+
+    this.knownOptions.set(
+      'rate',
+      new FixedOptions()
+        .addOption('1', 'Default')
+        .addOption('2', 'Slow')
+        .addOption('3', 'Medium')
+        .addOption('4', 'Fast'),
+    );
+
+    this.knownOptions.set(
+      'stress',
+      new FixedOptions()
+        .addOption('1', 'Default')
+        .addOption('2', 'None')
+        .addOption('3', 'Reduced')
+        .addOption('4', 'Moderate')
+        .addOption('5', 'Strong'),
+    );
+
+    this.knownOptions.set(
+      'volume',
+      new FixedOptions()
+        .addOption('1', 'Default')
+        .addOption('2', 'Whisper')
+        .addOption('3', 'Soft')
+        .addOption('4', 'Medium')
+        .addOption('5', 'Loud')
+        .addOption('6', 'X-loud'),
+    );
+
+    this.knownOptions.set(
+      'pitch',
+      new FixedOptions()
+        .addOption('1', 'Default')
+        .addOption('2', 'Low')
+        .addOption('3', 'Medium')
+        .addOption('4', 'High'),
+    );
+
+    this.knownOptions.set(
+      'pause-before',
+      new FixedOptions()
+        .addOption('1', 'Default')
+        .addOption('2', 'None')
+        .addOption('3', 'Weak')
+        .addOption('4', 'Medium')
+        .addOption('5', 'Strong'),
+    );
+
+    this.knownOptions.set(
+      'pause-after',
+      new FixedOptions()
+        .addOption('1', 'Default')
+        .addOption('2', 'None')
+        .addOption('3', 'Weak')
+        .addOption('4', 'Medium')
+        .addOption('5', 'Strong'),
+    );
+
+    this.knownOptions.set(
+      'balance',
+      new AutocompleteOptions()
+        .addOption('Default')
+        .addOption('Left')
+        .addOption('Center')
+        .addOption('Right')
+        .addOption('Left-to-center')
+        .addOption('Left-to-right')
+        .addOption('Right-to-center')
+        .addOption('Right-to-left')
+        .addOption('Center-to-left')
+        .addOption('Center-to-right')
+        .addOption('Above')
+        .addOption('Above-to-center')
+        .addOption('Center-to-above')
+        .addOption('Below')
+        .addOption('Below-to-center')
+        .addOption('Center-to-below'),
+    );
+
+    this.knownOptions.set(
+      'effects',
+      new AutocompleteOptions()
+        .addOption('Default')
+        .addOption('Subvocalized')
+        .addOption('Memory')
+        .addOption('Royal Canterlot Voice'),
+    );
+  }
+
+  requestSelection(property, fixedOptionModal, autocompleteModal) {
+    const options = this.knownOptions.get(property);
+    if (options instanceof FixedOptions) {
+      return fixedOptionModal.api.requestSelection(property, options);
+    } else if (options instanceof AutocompleteOptions) {
+      return autocompleteModal.api.requestSelection(property, options);
+    }
+
+    throw ('Missing options for property', property);
+  }
+}
+
+const ALLOWED_VALUES = new AllowedValues();
+
+const getLabelHint = (property) => {
+  return PROP_HINTS.get(property);
+};
+
+const KNOWN_DESCRIPTIONS = [
+  new TemplateDescription(
+    'meta element="narrator" character="?"',
+    'Change the narrator',
+  ),
+  new TemplateDescription('spoken character="?"', 'Label the speaker'),
+  new TemplateDescription(
+    'spoken character="{character}"',
+    'Label speaker as {character}',
+  ),
+  new TemplateDescription(
+    'meta character="?" age="?" gender="?"',
+    'Set the character description (age, gender)',
+  ),
+  new TemplateDescription('spoken emotion="?"', 'Label the emotion'),
+  new TemplateDescription(
+    'spoken emotion="{emotion}"',
+    'Label the emotion as {emotion}',
+  ),
+  new TemplateDescription(
+    'meta character="{character}" emotion="?"',
+    "Change {character}'s default emotion",
+  ),
+  new TemplateDescription(
+    'meta character="?" emotion="{emotion}"',
+    "Change a character's default emotion to {emotion}",
+  ),
+  new TemplateDescription(
+    'meta character="?" emotion="?"',
+    "Change a character's default emotion",
+  ),
+  new TemplateDescription(
+    'tuned rate="?" stress="?" volume="?" pitch="?"',
+    'Tune how a phrase is spoken',
+  ),
+  new TemplateDescription(
+    'meta character="?" rate="?" volume="?" pitch="?"',
+    "Change a character's default tuning",
+  ),
+  new TemplateDescription(
+    'timed pause-before="?" pause-after="?"',
+    'Add a pause before or after a phrase',
+  ),
+  new TemplateDescription(
+    'positioned balance="?"',
+    'Label the direction a character is speaking from',
+  ),
+  new TemplateDescription(
+    'spoken-as pronunciation="?"',
+    'Manually label how to pronounce a phrase',
+  ),
+  new TemplateDescription('ignored', "Don't create a clip for this line"),
+  new TemplateDescription(
+    'voiced effects="?"',
+    'Label speech for sound effects',
+  ),
+];
+
+const getLabelDescription = (partialLabel) => {
+  for (let knownDesc of KNOWN_DESCRIPTIONS) {
+    const result = knownDesc.getDescription(partialLabel);
+    if (result) {
+      return result;
+    }
+  }
+
+  return null;
+};
+
+const getParameterSetter = (partialLabel) => {
+  // # get list of parameters
+  // # figure out possible values for each parameter
+  // # infer hotkey
+  // # create a sequence of dialogs, one for each parameter
+};
+
+
+
+const SingleEnabledClipkey = ({ shortcut, action, description }) => {
   const { classes } = useContext(ThemeContext);
-  const classNamePaper = classes['c-hotkey__paper'];
-  const classNameDisabled = classes[`c-hotkey--${disabled ? 'disabled' : 'enabled'}`];
-  const classNames = `${classNamePaper} ${classNameDisabled}`;
+  const classNames = `${classes['u-align-left']}`;
 
   return (
     <div>
-      <span className={classNames}>{`${shortcut} 🠖 ${description}`}</span>
-      {disabled && (
-        <Button
-          className={classes['c-hotkey__restore-button']}
-          variant="outlined"
-          size="small"
-          color="primary"
-          disabled={!disabled}
-          onClick={restore}
-        >
-          Restore
-        </Button>
-      )}
+      <Button className={classNames} variant="outlined" size="small" color="primary" onClick={action}>
+        {`${shortcut} | ${description}`}
+      </Button>
     </div>
   );
 };
 
-const HotkeyDisplay = ({
-  hotkeys,
-  enabledHotkeys,
-  disabledHotkeys,
-  restoreHotkey,
-}) => {
+const SingleDisabledClipkey = ({ shortcut, restore, description }) => {
   const { classes } = useContext(ThemeContext);
-  hotkeys.useHotkeyUpdateListener();
-
   return (
-    <div className={classes['c-controls__hotkey-list']}>
-      {Array.from(enabledHotkeys.entries()).map(([, entry]) => {
-        const [key, shortcut, , description] = entry;
-        return (
-          <Hotkey
-            key={key}
-            hotkeys={hotkeys}
-            shortcut={shortcut}
-            description={description}
-            disabled={false}
-          />
-        );
-      })}
-
-      {Array.from(disabledHotkeys.entries()).map(([key, entry]) => {
-        const [shortcut, , description] = entry;
-
-        return (
-          <Hotkey
-            key={key}
-            hotkeys={hotkeys}
-            shortcut={shortcut}
-            description={description}
-            disabled={true}
-            restore={() => restoreHotkey(key)}
-          />
-        );
-      })}
+    <div>
+      <span
+        className={`${classes['c-hotkey__paper']} ${classes['c-hotkey--disabled']}`}
+      >{`${shortcut} | ${description}`}</span>
+      <Button
+        className={classes['c-hotkey__restore-button']}
+        variant="outlined"
+        size="small"
+        color="primary"
+        disabled="true"
+        onClick={restore}
+      >
+        Restore
+      </Button>
     </div>
   );
 };
 
-const useHotkeyDisplay = () => {
-  const clipfics = useClipfics();
-  const nextHotkeyIndex = useRef(0);
-  const enabledHotkeys = useRef(new Map());
-  const disabledHotkeys = useRef(new Map());
+const useClipkeyPanel = (clipfics, hotkeySet) => {
+  const { api, components, internal } = synthComponent();
 
-  const registerHotkey = (shortcut, action, description) => {
-    const enabled = enabledHotkeys.current;
-    const disabled = disabledHotkeys.current;
+  // const clipfics = useClipficsContext();
+  internal.nextClipkeyIndex = 0;
+  internal.enabledHotkeys = new Map(); // shortcut => { key, action, description }
+  internal.disabledHotkeys = new Map(); // key => { shortcut, action, description }
+  internal.subscription = synthSubscription();
 
-    if (enabled.has(shortcut)) {
-      const [oldKey, oldShortcut, oldAction, oldDescription] = enabled.get(shortcut);
-      clipfics.hotkeys.unregisterHotkey(shortcut, oldAction);
-      disabled.set(oldKey, [oldShortcut, oldAction, oldDescription]);
+  api.registerHotkey = (shortcut, action, description) => {
+    if (internal.enabledHotkeys.has(shortcut)) {
+      // unregister any previous associated action
+      const {
+        key: oldKey,
+        action: oldAction,
+        description: oldDescription,
+      } = internal.enabledHotkeys.get(shortcut);
+
+      clipfics.api.hotkeyListener.unregisterHotkey(hotkeySet, shortcut, oldAction);
+      internal.disabledHotkeys.set(oldKey, {
+        shortcut,
+        action: oldAction,
+        description: oldDescription,
+      });
     }
 
-    const nextIndex = nextHotkeyIndex.current++;
-    enabled.set(shortcut, [nextIndex, shortcut, action, description]);
+    // register the new action
+    const nextIndex = internal.nextClipkeyIndex++;
+    internal.enabledHotkeys.set(shortcut, {
+      key: nextIndex,
+      action,
+      description,
+    });
+    clipfics.api.hotkeyListener.registerHotkey(hotkeySet, shortcut, action);
 
-    clipfics.hotkeys.registerHotkey(shortcut, action);
+    internal.subscription.broadcast();
   };
 
-  const restoreHotkey = (key) => {
-    const enabled = enabledHotkeys.current;
-    const disabled = disabledHotkeys.current;
-    const [shortcut, action, description] = disabled.get(key);
-    const [oldKey, oldShortcut, oldAction, oldDescription] = enabled.get(shortcut);
+  api.restoreHotkey = (key) => {
+    const { shortcut, action, description } = internal.disabledHotkeys.get(key);
+    const {
+      key: oldKey,
+      action: oldAction,
+      description: oldDescription,
+    } = internal.enabledHotkeys.get(shortcut);
 
-    clipfics.hotkeys.unregisterHotkey(shortcut, oldAction);
-    disabled.delete(key);
-    enabled.set(shortcut, [key, shortcut, action, description]);
-    disabled.set(oldKey, [oldShortcut, oldAction, oldDescription]);
-    clipfics.hotkeys.registerHotkey(shortcut, action);
+    clipfics.api.hotkeyListener.unregisterHotkey(hotkeySet, shortcut, oldAction);
+    internal.disabledHotkeys.delete(key);
+    internal.enabledHotkeys.set(shortcut, { key, action, description });
+    internal.disabledHotkeys.set(oldKey, {
+      shortcut,
+      action: oldAction,
+      description: oldDescription,
+    });
+    clipfics.api.hotkeyListener.registerHotkey(hotkeySet, shortcut, action);
+
+    internal.subscription.broadcast();
   };
 
-  const Display = () => (
-    <HotkeyDisplay
-      hotkeys={clipfics.hotkeys}
-      enabledHotkeys={enabledHotkeys.current}
-      disabledHotkeys={disabledHotkeys.current}
-      restoreHotkey={restoreHotkey}
-    />
-  );
+  api.clearHotkeys = () => {
+    internal.nextClipkeyIndex = 0;
+
+    Array.from(internal.enabledHotkeys.entries()).forEach(([shortcut, entry]) => {
+      clipfics.api.hotkeyListener.unregisterHotkey(hotkeySet, shortcut, entry.action);
+    });
+
+    internal.enabledHotkeys.clear();
+    internal.disabledHotkeys.clear();
+  };
+
+  const Display = () => {
+    const { classes } = useContext(ThemeContext);
+    const { forceUpdate } = useForceUpdateControl();
+
+    internal.subscription.useSubscription(() => {
+      forceUpdate();
+    });
+
+    return (
+      <div className={classes['c-controls__hotkey-list']}>
+        {Array.from(internal.enabledHotkeys.entries()).map(([shortcut, entry]) => {
+          const { key, action, description } = entry;
+          return (
+            <SingleEnabledClipkey
+              key={key}
+              shortcut={shortcut}
+              action={action}
+              description={description}
+            />
+          );
+        })}
+
+        {Array.from(internal.disabledHotkeys.entries()).map(([key, entry]) => {
+          const { shortcut, description } = entry;
+
+          return (
+            <SingleDisabledClipkey
+              key={key}
+              shortcut={shortcut}
+              description={description}
+              restore={() => api.restoreHotkey(key)}
+            />
+          );
+        })}
+      </div>
+    );
+  };
+  components.Display = Display;
+
+  api.internal = internal;
 
   return {
-    HotkeyDisplay: Display,
-    registerHotkey,
+    components,
+    api,
   };
 };
 
-export default () => {
-  const clipfics = useClipfics();
-  const { saveSelection, restoreSelection } = useSelectionCache(clipfics.selection);
-  const {
-    currentItem: currentMissingProp,
-    hasNext: hasMissingProps,
-    begin: beginRequestMissingProps,
-    moveToNext: requestNextMissingProp,
-    terminate: stopRequestingProps,
-  } = useLoopControls();
-  const {
-    isModalOpen: isCustomLabelModalOpen,
-    openModal: openCustomLabelModal,
-    closeModal: closeCustomLabelModal,
-  } = useModalControls();
-  const {
-    CreateNewHotkey,
-    setValue: setNewHotkeyValue,
-    requestHotkey: createHotkeyHotkey,
-  } = useCreateNewHotkey(isLabelValid);
-  const {
-    isModalOpen: isModifyLabelModalOpen,
-    openModal: openModifyLabelModal,
-    closeModal: closeModifyLabelModal,
-  } = useModalControls();
-  let [modifyLabelCallback, setModifyLabelCallback] = useState();
-  let [originalLabel, setOriginalLabel] = useState();
+const useNavigator = (clipfics) => {
+  const { api, internal } = synthComponent();
+  // const clipfics = useClipficsContext();
 
-  const [lastSelection, setLastSelection] = useState();
-  const { HotkeyDisplay, registerHotkey } = useHotkeyDisplay();
-  let [pendingLabel, setPendingLabel] = useState();
-
-  const requestNewLabel = (currentLabel, onComplete) => {
-    modifyLabelCallback = onComplete;
-    setOriginalLabel((originalLabel = currentLabel));
-    setModifyLabelCallback(() => modifyLabelCallback);
-    openModifyLabelModal();
-  };
-
-  const labelSelectionWithTemplate = (template) => {
-    saveSelection();
-
-    pendingLabel = new CookieSynthLabel(clipfics.selection.getRange(), template);
-    setPendingLabel(pendingLabel);
-
-    beginRequestMissingProps(pendingLabel.missingTemplateProperties)
-      .then(() => {
-        const { terminal } = clipfics;
-        if (pendingLabel.injectLabel(clipfics)) {
-          setNewHotkeyValue(pendingLabel.completedLabel);
-        } else {
-          terminal.log('invalid label:', pendingLabel.completedLabel);
-        }
-        restoreSelection();
-      })
-      .catch((error) => {
-        setPendingLabel(null);
-        stopRequestingProps();
-        restoreSelection();
-      });
-  };
+  internal.lastSelection = null;
 
   const selectNext = (getNextRange) => {
-    let currentSelection = clipfics.selection.getRange();
+    let currentSelection = clipfics.api.selection.getRange();
     if (!currentSelection) {
-      currentSelection = lastSelection || clipfics.storyNavigator.getInitialRange();
+      currentSelection =
+        internal.lastSelection || clipfics.api.storyNavigator.getInitialRange();
     }
 
     const nextSelection = getNextRange(currentSelection);
     if (nextSelection) {
-      setLastSelection(nextSelection);
-      clipfics.selection.setRange(nextSelection);
+      internal.lastSelection = nextSelection;
+      clipfics.api.selection.setRange(nextSelection);
 
       new RangeUtils(nextSelection).scrollIntoView();
     }
   };
 
-  const addCustomLabel = () => {
-    const selectionRange = clipfics.selection.getRange();
-    if (!selectionRange) {
-      clipfics.terminal.log('you need to select some story text first');
-      return;
-    }
-
-    saveSelection();
-    openCustomLabelModal();
+  api.createSelectNextAction = (regex) => {
+    return () =>
+      selectNext((current) =>
+        clipfics.api.storyNavigator.getNextPhrase(current, regex),
+      );
   };
 
-  const addTemplatedLabel = (template) => () => {
-    const selectionRange = clipfics.selection.getRange();
-    if (!selectionRange) {
-      clipfics.terminal.log('you need to select some story text first');
-      return;
-    }
-
-    labelSelectionWithTemplate(template);
+  api.createSelectPrevAction = (regex) => {
+    return () =>
+      selectNext((current) =>
+        clipfics.api.storyNavigator.getPreviousPhrase(current, regex),
+      );
   };
 
-  const createHotkey = (shortcut, action, description) => {
-    registerHotkey(shortcut, action, description);
-  };
+  return { api };
+};
 
-  const createLabelHotkey = (shortcut, labelTemplate) => {
-    const description = getLabelDescription(labelTemplate) || labelTemplate;
-    createHotkey(shortcut, addTemplatedLabel(labelTemplate), description);
-  };
-
-  const createNextSelectionHotkey = (shortcut, regex, description) => {
-    createHotkey(
-      shortcut,
-      () =>
-        selectNext((current) =>
-          clipfics.storyNavigator.getNextPhrase(current, regex),
-        ),
-      description,
-    );
-  };
-
-  const createPrevSelectionHotkey = (shortcut, regex, description) => {
-    createHotkey(
-      shortcut,
-      () =>
-        selectNext((current) =>
-          clipfics.storyNavigator.getPreviousPhrase(current, regex),
-        ),
-      description,
-    );
-  };
-
-  useInitializer(() => {
-    // createHotkey('~', addCustomLabel, 'Create custom label');
-    createLabelHotkey('~', 'meta element="narrator" character="?"');
-    createLabelHotkey('1', 'spoken character="?"');
-    createLabelHotkey('!', 'meta character="?" age="?" gender="?"');
-    createLabelHotkey('2', 'spoken emotion="?"');
-    createLabelHotkey('@', 'meta character="?" emotion="?"');
-    createLabelHotkey('3', 'tuned rate="?" stress="?" volume="?" pitch="?"')
-    createLabelHotkey('#', 'meta character="?" rate="?" volume="?" pitch="?"')
-    createLabelHotkey('4', 'timed pause-before="?" pause-after="?"')
-    createLabelHotkey('5', 'positioned balance="?"')
-    createLabelHotkey('6', 'voiced pronunciation="?"')
-    createLabelHotkey('7', 'voiced style="?"')
-    createHotkey('+', createHotkeyHotkey, 'Add the last label as a hotkey');
-    createNextSelectionHotkey('>', /\S.*\S?/g, 'Select next paragraph');
-    createPrevSelectionHotkey('<', /\S.*\S?/g, 'Select previous paragraph');
-    createNextSelectionHotkey("'", /"[^ ][^"]*"?/g, 'Select next quote');
-    createPrevSelectionHotkey('"', /"[^ ][^"]*"?/g, 'Select previous quote');
-    createNextSelectionHotkey(
-      '.',
-      /(?:\w[^.?!"]*[^ "][.?!]*)/g,
-      'Select next phrase',
-    );
-    createPrevSelectionHotkey(
-      ',',
-      /(?:\w[^.?!"]*[^ "][.?!]*)/g,
-      'Select previous phrase',
-    );
-    // createHotkey('\\', () => clipfics.saveResource(), 'Export labels');
-  });
-
-  const getLabelWithHint = (missingProp) => {
-    const hint = getLabelHint(missingProp);
-    if (hint) {
-      return `${missingProp} (${hint})`;
-    }
-
-    return missingProp;
+const getLabelWithHint = (missingProp) => {
+  const hint = getLabelHint(missingProp);
+  if (hint) {
+    return `${missingProp} (${hint})`;
   }
 
-  const HotkeyModals = () => (
-    <React.Fragment>
-      <TextFieldModal
-        open={isCustomLabelModalOpen}
-        onComplete={(text) => {
-          closeCustomLabelModal();
-          restoreSelection();
-          labelSelectionWithTemplate(text);
-        }}
-        onClose={() => {
-          closeCustomLabelModal();
-          restoreSelection();
-        }}
-        label="Add label"
-      />
-      <TextFieldModal
-        open={hasMissingProps}
-        onComplete={(text) => {
-          pendingLabel.setNextValue(text);
-          requestNextMissingProp();
-        }}
-        onClose={stopRequestingProps}
-        label={getLabelWithHint(currentMissingProp)}
-      />
-      <TextFieldModal
-        open={isModifyLabelModalOpen}
-        onComplete={(text) => {
-          modifyLabelCallback(text);
-          closeModifyLabelModal();
-        }}
-        onClose={() => {
-          closeModifyLabelModal();
-        }}
-        value={originalLabel}
-        label="Update label"
-      />
-    </React.Fragment>
-  );
+  return missingProp;
+};
 
-  const CreateHotkey = () => (
-    <CreateNewHotkey
-      hotkeys={clipfics.hotkeys}
-      onHotkeyAdded={createLabelHotkey}
-      isHotkeyValid={isLabelValid}
-    />
-  );
+const useLabeler = (clipfics) => {
+  const { api, components, internal } = synthComponent();
 
-  clipfics.requestNewLabel = requestNewLabel;
-  return { HotkeyDisplay, HotkeyModals, CreateHotkey, requestNewLabel };
+  internal.requestPropsLoop = useForEachLoop().api;
+  internal.selectionCache = useSelectionCache(clipfics.api.selection).api;
+  internal.modifyLabelModal = useModal().api;
+
+  internal.modifyLabelCallback = null;
+  internal.originalLabel = null;
+
+  internal.fixedOptionModal = useFixedOptionsModal(clipfics.api.hotkeyListener);
+  internal.autocompleteModal = useAutocompleteModal();
+
+  api.lastLabel = '';
+
+  const requestNewLabel = (currentLabel, onComplete) => {
+    internal.originalLabel = currentLabel;
+    internal.modifyLabelCallback = onComplete;
+    internal.modifyLabelModal.openModal();
+  };
+
+  api.labelSelection = (template) => {
+    internal.selectionCache.saveSelection();
+    const pendingLabel = new CookieSynthLabel(
+      clipfics.api.selection.getRange(),
+      template,
+    );
+
+    internal.requestPropsLoop
+      .forEach(pendingLabel.missingTemplateProperties, (moveToNext) => {
+        ALLOWED_VALUES.requestSelection(
+          internal.requestPropsLoop.currentItem,
+          internal.fixedOptionModal,
+          internal.autocompleteModal,
+        )
+          .then((value) => {
+            pendingLabel.setNextValue(value);
+            moveToNext();
+          })
+          .catch((error) => {
+            internal.requestPropsLoop.terminate(error);
+          });
+      })
+      .then(() => {
+        const { terminal } = clipfics.api;
+        if (pendingLabel.injectLabel(clipfics, requestNewLabel)) {
+          api.lastLabel = pendingLabel.getCompletedLabel();
+        } else {
+          terminal.log('invalid label:', pendingLabel.completedLabel);
+        }
+        internal.selectionCache.restoreSelection();
+      })
+      .catch((error) => {
+        internal.requestPropsLoop.terminate();
+        internal.selectionCache.restoreSelection();
+        if (error) {
+          throw error;
+        }
+      });
+  };
+
+  const AddLabelModals = () => {
+    return (
+      <React.Fragment>
+        <internal.fixedOptionModal.components.Display />
+        <internal.autocompleteModal.components.Display />
+      </React.Fragment>
+    );
+  };
+  components.AddLabelModals = AddLabelModals;
+
+  return { api, components };
+};
+
+export default (clipfics) => {
+  const { api, components } = synthComponent();
+  const navigator = useNavigator(clipfics);
+  const clipkeyPanel = useClipkeyPanel(clipfics, 'default');
+  const labeler = useLabeler(clipfics);
+
+  // create set of second-level modal options
+  // create a single modal to display the second-level options
+  // update the parameters of that modal depending on which one is presented
+
+  api.requestNewLabel = labeler.api.requestNewLabel;
+  api.clearHotkeys = clipkeyPanel.api.clearHotkeys;
+
+  components.HotkeyDisplay = clipkeyPanel.components.Display;
+  components.HotkeyModals = labeler.components.AddLabelModals;
+
+  const addTemplatedLabel = (template) => () => {
+    const selectionRange = clipfics.api.selection.getRange();
+    if (!selectionRange) {
+      clipfics.api.terminal.log('you need to select some story text first');
+      return;
+    }
+
+    labeler.api.labelSelection(template);
+  };
+
+  api.createHotkey = (shortcut, action, description) => {
+    clipkeyPanel.api.registerHotkey(shortcut, action, description);
+  };
+
+  api.createLabelHotkey = (shortcut, labelTemplate) => {
+    const description = getLabelDescription(labelTemplate) || labelTemplate;
+    api.createHotkey(shortcut, addTemplatedLabel(labelTemplate), description);
+  };
+
+  api.createRepeatLabelHotkey = (shortcut) => {
+    api.createHotkey(
+      shortcut,
+      () => addTemplatedLabel(labeler.api.lastLabel)(),
+      'Repeat last label',
+    );
+  };
+
+  api.createNextSelectionHotkey = (shortcut, regex, description) => {
+    api.createHotkey(
+      shortcut,
+      navigator.api.createSelectNextAction(regex),
+      description,
+    );
+  };
+
+  api.createPrevSelectionHotkey = (shortcut, regex, description) => {
+    api.createHotkey(
+      shortcut,
+      navigator.api.createSelectPrevAction(regex),
+      description,
+    );
+  };
+
+  return {
+    api,
+    components,
+  };
+};
+
+const useCookieSynthLabeler = () => {
+  const { api, components, internal } = synthComponent();
+
+  api.registerHint = null;
+  api.registerHotkey = null; // accepts either a template string or a function to call
+
+  components.Panel = null;
+  components.PromptModals = null;
 };

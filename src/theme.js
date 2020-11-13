@@ -40,6 +40,10 @@ export const useStyles = makeStyles({
     height: '100%',
   },
 
+  'u-align-left': {
+    'text-align': 'left',
+  },
+
   'c-control-panel': {
     'max-height': 'calc(82vh - 64px)',
     height: 'calc(82vh - 64px)',

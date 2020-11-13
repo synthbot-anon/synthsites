@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect, createRef } from 'react';
-import Hotkeys from 'common/Hotkeys.js';
+import useHotkeyListener from 'common/useHotkeyListener.js';
 import ContainerSelection from 'common/ContainerSelection.js';
 import HtmlNavigator from 'common/HtmlNavigator.js';
 import CookieSynthHtml from 'clipfics/cookiesynth/CookieSynthHtml.js';
@@ -12,7 +12,10 @@ import { Grid } from '@material-ui/core';
 import MetaReplay, { MetaDisplay } from 'clipfics/MetaReplay.js';
 import useClipkeys from 'clipfics/useClipkeys.js';
 import RangeTreeMap from 'common/RangeTreeMap.js';
-import { useClipfics } from 'tasks.js';
+import { useClipficsContext } from 'tasks.js';
+import synthComponent from 'common/synthComponent.js';
+import useInitializer from 'common/useInitializer.js';
+import { TerminalSpan, TerminalButton } from 'common/Terminal.js';
 
 const HtmlResourceView = ({ taskContext }) => {
   console.log('loading resource view');
@@ -70,29 +73,28 @@ const MetaStateView = ({ taskContext }) => {
 };
 
 const StoryFocusTracker = () => {
-  const clipfics = useClipfics();
+  const clipfics = useClipficsContext();
 
   const bumpRelevantLogs = (range) => {
-    for (let bumpLog of clipfics.onLabelClicked.getAll(range)) {
+    for (let bumpLog of clipfics.api.onLabelClicked.getAll(range)) {
       bumpLog();
     }
   };
 
-  clipfics.selection.useClick(bumpRelevantLogs);
+  clipfics.api.selection.useClick(bumpRelevantLogs);
 
   return null;
 };
 
 const HotkeyPanel = () => {
-  const { HotkeyDisplay, HotkeyModals, CreateHotkey } = useClipkeys();
+  const clipfics = useClipficsContext();
   const { classes } = useContext(ThemeContext);
 
   return (
     <Grid container>
       <Grid item className={classes['c-controls--fill-width']}>
-        <HotkeyDisplay />
-        <CreateHotkey />
-        <HotkeyModals />
+        <clipfics.components.HotkeyDisplay />
+        <clipfics.components.HotkeyModals />
         <StoryFocusTracker />
       </Grid>
     </Grid>
@@ -123,39 +125,165 @@ const getCurrentGreenContent = () => {
   return storyBlob;
 };
 
-export default (resourceManager, terminal) => {
-  const [taskContext] = useState(() => {
-    const result = {};
-    result.terminal = terminal;
-    result.resourceManager = resourceManager;
-    result.hotkeys = new Hotkeys();
-    result.storyContent = '';
+class StandardHotkeySetter {
+  #clipkeys;
 
-    const storyContainerRef = createRef();
-    result.storyContainerRef = storyContainerRef;
-    result.selection = new ContainerSelection(storyContainerRef);
-    result.storyNavigator = new HtmlNavigator(storyContainerRef);
-    result.metaReplay = new MetaReplay();
-    result.onLabelClicked = new RangeTreeMap();
-    result.saveResource = null;
+  constructor(clipkeys) {
+    this.#clipkeys = clipkeys;
 
-    return result;
-  });
+    this.changeNarrator = (shortcut) => clipkeys.api.createLabelHotkey(shortcut, 'meta element="narrator" character="?"');
+    this.labelSpeaker = (shortcut) => clipkeys.api.createLabelHotkey(shortcut, 'spoken character="?"');
+    this.speakerDescription = (shortcut) => clipkeys.api.createLabelHotkey(shortcut, 'meta character="?" age="?" gender="?"');
+    this.labelEmotion = (shortcut) => clipkeys.api.createLabelHotkey(shortcut, 'spoken emotion="?"');
+    this.defaultEmotion = (shortcut) => clipkeys.api.createLabelHotkey(shortcut, 'meta character="?" emotion="?"');
+    this.tunePhrase = (shortcut) => clipkeys.api.createLabelHotkey(shortcut, 'tuned rate="?" stress="?" volume="?" pitch="?"');
+    this.labelPause = (shortcut) => clipkeys.api.createLabelHotkey(shortcut, 'timed pause-before="?" pause-after="?"');
+    this.labelDirection = (shortcut) => clipkeys.api.createLabelHotkey(shortcut, 'positioned balance="?"');
+    this.labelPronunciation = (shortcut) => clipkeys.api.createLabelHotkey(shortcut, 'spoken-as pronunciation="?"');
+    this.labelEffects = (shortcut) => clipkeys.api.createLabelHotkey(shortcut, 'voiced effects="?"');
+    this.ignore = (shortcut) => clipkeys.api.createLabelHotkey(shortcut, 'ignored');
+    this.repeatLastLabel = (shortcut) => clipkeys.api.createRepeatLabelHotkey(shortcut);
+    this.nextParagraph = (shortcut) => clipkeys.api.createNextSelectionHotkey(shortcut, /\S.*\S?/g, 'Select next paragraph');
+    this.prevParagraph = (shortcut) => clipkeys.api.createPrevSelectionHotkey(shortcut, /\S.*\S?/g, 'Select previous paragraph');
+    this.nextQuote = (shortcut) => clipkeys.api.createNextSelectionHotkey(shortcut, /"[^ ][^"]*"?/g, 'Select next quote');
+    this.prevQuote = (shortcut) => clipkeys.api.createPrevSelectionHotkey(shortcut, /"[^ ][^"]*"?/g, 'Select previous quote');
+    this.nextPhrase = (shortcut) => clipkeys.api.createNextSelectionHotkey(shortcut, /(?:\w[^.?!"]*[^ "][.?!]*)/g, 'Select next phrase');
+    this.prevPhrase = (shortcut) => clipkeys.api.createPrevSelectionHotkey(
+      shortcut,
+      /(?:\w[^.?!"]*[^ "][.?!]*)/g,
+      'Select previous phrase',
+    );
+  }
 
-  taskContext.hotkeys.useHotkeyListener();
+  clearHotkeys() {
+    this.#clipkeys.api.clearHotkeys();
+  }
+}
 
-  const loadStoryContent = (content) => {
-    taskContext.storyContent = content;
-    taskContext.metaReplay = new MetaReplay();
-    taskContext.labelMap = new RangeTreeMap();
-    taskContext.terminal.clear();
+const addUSHotkeys = (hotkeySetter) => {
+  hotkeySetter.clearHotkeys();
 
-    if (taskContext.updateStoryDisplay) {
-      taskContext.updateStoryDisplay();
+  hotkeySetter.changeNarrator('~');
+  hotkeySetter.labelSpeaker('1');
+  hotkeySetter.labelEmotion('2');
+  hotkeySetter.tunePhrase('3');
+  hotkeySetter.labelPause('4');
+  hotkeySetter.labelDirection('5');
+  hotkeySetter.labelPronunciation('6');
+  hotkeySetter.labelEffects('7');
+  hotkeySetter.ignore('9');
+  hotkeySetter.repeatLastLabel('0');
+
+  hotkeySetter.speakerDescription('!');
+  hotkeySetter.defaultEmotion('@');
+
+  hotkeySetter.nextParagraph('>');
+  hotkeySetter.prevParagraph('<');
+  hotkeySetter.nextQuote("'");
+  hotkeySetter.prevQuote('"');
+  hotkeySetter.nextPhrase('.');
+  hotkeySetter.prevPhrase(',');
+}
+
+const addUKHotkeys = (hotkeySetter) => {
+  hotkeySetter.clearHotkeys();
+
+  hotkeySetter.changeNarrator('¬');
+  hotkeySetter.labelSpeaker('1');
+  hotkeySetter.labelEmotion('2');
+  hotkeySetter.tunePhrase('3');
+  hotkeySetter.labelPause('4');
+  hotkeySetter.labelDirection('5');
+  hotkeySetter.labelPronunciation('6');
+  hotkeySetter.labelEffects('7');
+  hotkeySetter.ignore('9');
+  hotkeySetter.repeatLastLabel('0');
+
+  hotkeySetter.speakerDescription('!');
+  hotkeySetter.defaultEmotion('"');
+
+  hotkeySetter.nextParagraph('>');
+  hotkeySetter.prevParagraph('<');
+  hotkeySetter.nextQuote("'");
+  hotkeySetter.prevQuote('@');
+  hotkeySetter.nextPhrase('.');
+  hotkeySetter.prevPhrase(',');
+}
+
+const LOCALIZATION_OPTIONS = ['american', 'british'];
+const localize = (hotkeySetter, locale) => {
+  console.log(hotkeySetter);
+  if (locale === 'american') {
+    addUSHotkeys(hotkeySetter);
+  } else if (locale === 'british') {
+    addUKHotkeys(hotkeySetter);
+  }
+}
+
+const LocalizationLine = ({ hotkeySetter }) => {
+  const [localization, setLocalization] = useState(LOCALIZATION_OPTIONS[0]);
+
+  const alternatives = [`hello, ${localization} anon.`];
+  for (let option of LOCALIZATION_OPTIONS) {
+    const onClick = () => {
+      localize(hotkeySetter, option);
+      setLocalization(option);
     }
 
-    if (taskContext.updateMetaDisplay) {
-      taskContext.updateMetaDisplay();
+    if (localization !== option) {
+      alternatives.push(
+        <TerminalButton key={option} onClick={onClick}>i'm {option}</TerminalButton>
+      );
+    }
+  }
+
+  return (
+    <TerminalSpan children={alternatives} />
+  );
+}
+
+export default (resourceManager, terminal) => {
+  console.log('creating clipfics task');
+  const { api, components } = synthComponent();
+
+  api.terminal = terminal;
+  api.resourceManager = resourceManager;
+  api.storyContent = '';
+  api.storyContainerRef = createRef();
+  api.selection = new ContainerSelection(api.storyContainerRef);
+  api.storyNavigator = new HtmlNavigator(api.storyContainerRef);
+  api.metaReplay = new MetaReplay();
+  api.onLabelClicked = new RangeTreeMap();
+  api.saveResource = null;
+
+  const hotkeyListener = useHotkeyListener();
+  api.hotkeyListener = hotkeyListener.api;
+
+  const clipkeys = useClipkeys({ api });
+  components.HotkeyDisplay = clipkeys.components.HotkeyDisplay;
+  components.HotkeyModals = clipkeys.components.HotkeyModals;
+  api.requestNewLabel = clipkeys.api.requestNewLabel;
+
+  api.hotkeySetter = new StandardHotkeySetter(clipkeys);
+  addUSHotkeys(api.hotkeySetter);
+
+  // TODO: use the typical useX component for this so it behaves properly on clear
+  const localizationLine = <LocalizationLine hotkeySetter={api.hotkeySetter} />;
+  terminal.append(() => localizationLine);
+
+  const loadStoryContent = (content) => {
+    api.storyContent = content;
+    api.metaReplay = new MetaReplay();
+    api.labelMap = new RangeTreeMap();
+    api.terminal.clear();
+    terminal.append(() => localizationLine);
+
+    if (api.updateStoryDisplay) {
+      api.updateStoryDisplay();
+    }
+
+    if (api.updateMetaDisplay) {
+      api.updateMetaDisplay();
     }
   };
 
@@ -170,31 +298,31 @@ export default (resourceManager, terminal) => {
 
   useEffect(() => {
     const createProseView = (resource) => {
-      taskContext.currentResource = resource;
-      taskContext.storyContent = '';
+      api.currentResource = resource;
+      api.storyContent = '';
       readTextFile(resource).then(({ target }) => loadStoryContent(target.result));
       return () => {
         useEffect(() => {
           const saveResource = () => {
-            taskContext.currentResource = resourceManager.updateResource(
+            api.currentResource = resourceManager.updateResource(
               resource,
               getCurrentHtmlContent(),
             );
           };
 
-          taskContext.saveResource = saveResource;
+          api.saveResource = saveResource;
           return () => {
-            taskContext.saveResource = null;
+            api.saveResource = null;
           };
         });
 
-        return <HtmlResourceView taskContext={taskContext} />;
+        return <HtmlResourceView taskContext={api} />;
       };
     };
 
     const createGreentextView = (resource) => {
-      taskContext.currentResource = resource;
-      taskContext.storyContent = '';
+      api.currentResource = resource;
+      api.storyContent = '';
       readTextFile(resource).then(({ target }) => {
         loadStoryContent(target.result);
       });
@@ -202,21 +330,19 @@ export default (resourceManager, terminal) => {
       return () => {
         useEffect(() => {
           const saveResource = () => {
-            taskContext.currentResource = resourceManager.updateResource(
+            api.currentResource = resourceManager.updateResource(
               resource,
               getCurrentGreenContent(),
             );
           };
 
-          taskContext.saveResource = saveResource;
-          console.log('loading saveResource as:', saveResource);
+          api.saveResource = saveResource;    
           return () => {
-            taskContext.saveResource = null;
-            console.log('unloading saveResource');
+            api.saveResource = null;
           };
         });
 
-        return <GreentextResourceView taskContext={taskContext} />;
+        return <GreentextResourceView taskContext={api} />;
       };
     };
 
@@ -237,11 +363,12 @@ export default (resourceManager, terminal) => {
   }, []);
 
   return {
-    taskContext,
+    api,
+    components,
     tabs: [
       {
         label: 'Story',
-        panel: () => <MetaStateView taskContext={taskContext} />,
+        panel: () => <MetaStateView taskContext={api} />,
       },
       {
         label: 'Hotkeys',

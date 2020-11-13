@@ -1,12 +1,12 @@
 import React, { useEffect } from 'react';
 import { Paper } from '@material-ui/core';
 import sanitizeHtml from 'sanitize-html';
-import { useClipfics } from 'tasks.js';
+import { useClipficsContext } from 'tasks.js';
 import { reloadLabels } from 'clipfics/cookiesynth/CookieSynthLabel.js';
 
 // Panel used to display an HTML story.
 export default ({ children }) => {
-  const clipfics = useClipfics();
+  const clipfics = useClipficsContext();
 
   const div = document.createElement('div');
   const sanitizedHtml = customSanitizeHtml(children);
@@ -16,7 +16,7 @@ export default ({ children }) => {
 
   return (
     <Paper
-      ref={clipfics.storyContainerRef}
+      ref={clipfics.api.storyContainerRef}
       id="js-story-sheet"
       dangerouslySetInnerHTML={{ __html: div.innerHTML }}
     />
