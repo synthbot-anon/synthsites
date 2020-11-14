@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect, createRef } from 'react';
 import useHotkeyListener from 'common/useHotkeyListener.js';
-import ContainerSelection from 'common/ContainerSelection.js';
+import useContainerSelection from 'common/useContainerSelection.js';
 import HtmlNavigator from 'common/HtmlNavigator.js';
 import CookieSynthHtml from 'clipfics/cookiesynth/CookieSynthHtml.js';
 import CookieSynthGreentext, {
@@ -18,7 +18,6 @@ import useInitializer from 'common/useInitializer.js';
 import { TerminalSpan, TerminalButton } from 'common/Terminal.js';
 
 const HtmlResourceView = ({ taskContext }) => {
-  console.log('loading resource view');
   const { classes } = useContext(ThemeContext);
   const { forceUpdate } = useForceUpdate();
 
@@ -39,7 +38,6 @@ const HtmlResourceView = ({ taskContext }) => {
 };
 
 const GreentextResourceView = ({ taskContext }) => {
-  console.log('loading resource view');
   const { classes } = useContext(ThemeContext);
   const { forceUpdate } = useForceUpdate();
 
@@ -72,20 +70,6 @@ const MetaStateView = ({ taskContext }) => {
   return <MetaDisplay />;
 };
 
-const StoryFocusTracker = () => {
-  const clipfics = useClipficsContext();
-
-  const bumpRelevantLogs = (range) => {
-    for (let bumpLog of clipfics.api.onLabelClicked.getAll(range)) {
-      bumpLog();
-    }
-  };
-
-  clipfics.api.selection.useClick(bumpRelevantLogs);
-
-  return null;
-};
-
 const HotkeyPanel = () => {
   const clipfics = useClipficsContext();
   const { classes } = useContext(ThemeContext);
@@ -95,7 +79,6 @@ const HotkeyPanel = () => {
       <Grid item className={classes['c-controls--fill-width']}>
         <clipfics.components.HotkeyDisplay />
         <clipfics.components.HotkeyModals />
-        <StoryFocusTracker />
       </Grid>
     </Grid>
   );
@@ -212,7 +195,6 @@ const addUKHotkeys = (hotkeySetter) => {
 
 const LOCALIZATION_OPTIONS = ['american', 'british'];
 const localize = (hotkeySetter, locale) => {
-  console.log(hotkeySetter);
   if (locale === 'american') {
     addUSHotkeys(hotkeySetter);
   } else if (locale === 'british') {
@@ -243,14 +225,13 @@ const LocalizationLine = ({ hotkeySetter }) => {
 }
 
 export default (resourceManager, terminal) => {
-  console.log('creating clipfics task');
   const { api, components } = synthComponent();
 
   api.terminal = terminal;
   api.resourceManager = resourceManager;
   api.storyContent = '';
   api.storyContainerRef = createRef();
-  api.selection = new ContainerSelection(api.storyContainerRef);
+  api.selection = useContainerSelection(api.storyContainerRef).api;
   api.storyNavigator = new HtmlNavigator(api.storyContainerRef);
   api.metaReplay = new MetaReplay();
   api.onLabelClicked = new RangeTreeMap();
@@ -262,7 +243,6 @@ export default (resourceManager, terminal) => {
   const clipkeys = useClipkeys({ api });
   components.HotkeyDisplay = clipkeys.components.HotkeyDisplay;
   components.HotkeyModals = clipkeys.components.HotkeyModals;
-  api.requestNewLabel = clipkeys.api.requestNewLabel;
 
   api.hotkeySetter = new StandardHotkeySetter(clipkeys);
   addUSHotkeys(api.hotkeySetter);
@@ -270,6 +250,14 @@ export default (resourceManager, terminal) => {
   // TODO: use the typical useX component for this so it behaves properly on clear
   const localizationLine = <LocalizationLine hotkeySetter={api.hotkeySetter} />;
   terminal.append(() => localizationLine);
+
+  const bumpRelevantLogs = (range) => {
+    for (let bumpLog of api.onLabelClicked.getAll(range)) {
+      bumpLog();
+    }
+  };
+
+  api.selection.clickSubscription.useSubscription(bumpRelevantLogs);
 
   const loadStoryContent = (content) => {
     api.storyContent = content;

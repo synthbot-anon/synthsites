@@ -2,7 +2,7 @@ import React, { useState, useContext, useRef, useEffect } from 'react';
 import { ThemeContext } from 'theme.js';
 // import { useClipficsContext } from 'tasks.js';
 import useTextFieldModal from 'common/useTextFieldModal.js';
-import { useSelectionCache } from 'common/ContainerSelection.js';
+import { useSelectionCache } from 'common/useContainerSelection.js';
 import useModal from 'common/useModal.js';
 import useForEachLoop from 'common/useForEachLoop.js';
 import useInitializer from 'common/useInitializer.js';
@@ -171,12 +171,6 @@ class AllowedValues {
         .addOption('Maud')
         .addOption('Mayor Mare')
         .addOption('Meadowbrook')
-        .addOption('Mean Applejack')
-        .addOption('Mean Fluttershy')
-        .addOption('Mean Pinkie Pie')
-        .addOption('Mean Rainbow Dash')
-        .addOption('Mean Rarity')
-        .addOption('Mean Twilight Sparkle')
         .addOption('Micro Chips')
         .addOption('Midnight Sparkle')
         .addOption('Minuette')
@@ -312,42 +306,34 @@ class AllowedValues {
         .addOption('Young Granny Smith')
         .addOption('Zecora')
         .addOption('Zephyr')
-        .addOption('Zesty Gourmand'),
+        .addOption('Zesty Gourmand')
+        .addOption('Mean Applejack')
+        .addOption('Mean Fluttershy')
+        .addOption('Mean Pinkie Pie')
+        .addOption('Mean Rainbow Dash')
+        .addOption('Mean Rarity')
+        .addOption('Mean Twilight Sparkle')
     );
 
     this.knownOptions.set(
       'emotion',
       new AutocompleteOptions()
-        .addOption('Default')
-        .addOption('Amused')
-        .addOption('Angry')
-        .addOption('Annoyed')
-        .addOption('Anxious')
-        .addOption('Bored')
-        .addOption('Confused')
-        .addOption('Crazy')
-        .addOption('Curious')
-        .addOption('Disgust')
-        .addOption('Dizzy')
-        .addOption('Excited')
-        .addOption('Exhausted')
-        .addOption('Fear')
-        .addOption('Happy')
-        .addOption('Laughing')
-        .addOption('Love')
-        .addOption('Muffled')
-        .addOption('Nervous')
         .addOption('Neutral')
+        .addOption('Anxious')
+        .addOption('Happy')
+        .addOption('Annoyed')
         .addOption('Sad')
-        .addOption('Sarcastic')
-        .addOption('Serious')
-        .addOption('Shouting')
-        .addOption('Singing')
+        .addOption('Confused')
         .addOption('Smug')
+        .addOption('Angry')
+        .addOption('Whispering')
+        .addOption('Shouting')
+        .addOption('Sarcastic')
+        .addOption('Amused')
         .addOption('Surprised')
-        .addOption('Tired')
-        .addOption('Whining')
-        .addOption('Whispering'),
+        .addOption('Singing')
+        .addOption('Fear')
+        .addOption('Serious')
     );
 
     this.knownOptions.set(
@@ -765,12 +751,6 @@ const useLabeler = (clipfics) => {
 
   api.lastLabel = '';
 
-  const requestNewLabel = (currentLabel, onComplete) => {
-    internal.originalLabel = currentLabel;
-    internal.modifyLabelCallback = onComplete;
-    internal.modifyLabelModal.openModal();
-  };
-
   api.labelSelection = (template) => {
     internal.selectionCache.saveSelection();
     const pendingLabel = new CookieSynthLabel(
@@ -795,7 +775,7 @@ const useLabeler = (clipfics) => {
       })
       .then(() => {
         const { terminal } = clipfics.api;
-        if (pendingLabel.injectLabel(clipfics, requestNewLabel)) {
+        if (pendingLabel.injectLabel(clipfics)) {
           api.lastLabel = pendingLabel.getCompletedLabel();
         } else {
           terminal.log('invalid label:', pendingLabel.completedLabel);
@@ -834,7 +814,6 @@ export default (clipfics) => {
   // create a single modal to display the second-level options
   // update the parameters of that modal depending on which one is presented
 
-  api.requestNewLabel = labeler.api.requestNewLabel;
   api.clearHotkeys = clipkeyPanel.api.clearHotkeys;
 
   components.HotkeyDisplay = clipkeyPanel.components.Display;

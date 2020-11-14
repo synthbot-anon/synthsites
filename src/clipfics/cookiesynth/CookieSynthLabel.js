@@ -189,7 +189,7 @@ export default class CookieSynthLabel {
     return this.completedLabel;
   }
 
-  injectLabel(clipfics, requestNewLabel) {
+  injectLabel(clipfics) {
     const { terminal, selection, metaReplay, onLabelClicked } = clipfics.api;
     let completedLabel = this.getCompletedLabel();
 
@@ -214,7 +214,6 @@ export default class CookieSynthLabel {
         onLabelClicked={onLabelClicked}
         indicator={indicator}
         metaTransition={metaTransition}
-        requestNewLabel={requestNewLabel}
       />
     ));
 
@@ -234,9 +233,6 @@ const LabelLink = ({ contents, label, onClick, removed }) => {
 const LabelControls = ({ onReplace, onRemove, disabled }) => {
   return (
     <TerminalSpan>
-      <TerminalButton disabled={disabled} onClick={onReplace}>
-        Update label
-      </TerminalButton>
       <TerminalButton disabled={disabled} onClick={onRemove}>
         Remove label
       </TerminalButton>
@@ -250,7 +246,6 @@ const LabelLog = ({
   range,
   indicator,
   metaTransition,
-  requestNewLabel,
   onLabelClicked,
 }) => {
   const [indicatorState, setIndicatorState] = useState(0);
@@ -267,21 +262,6 @@ const LabelLog = ({
     };
   }, []);
 
-  const replaceLabel = () => {
-    requestNewLabel(indicator.completedLabel, (newLabel) => {
-      if (!isLabelValid(newLabel)) {
-        terminal.log('invalid update');
-        return;
-      }
-
-      indicator.updateLabel(newLabel);
-      metaTransition.apply(newLabel);
-      setIndicatorState(indicatorState + 1);
-    });
-
-    return true;
-  };
-
   const removeLabel = () => {
     indicator.remove();
     metaTransition.remove();
@@ -297,7 +277,6 @@ const LabelLog = ({
         removed={disabled}
       />
       <LabelControls
-        onReplace={replaceLabel}
         onRemove={removeLabel}
         disabled={disabled}
       />
@@ -399,7 +378,9 @@ class LabelIndicator {
 
   remove() {
     this.startIndicator.replaceWith();
-    this.endIndicator.replaceWith();
+    if (this.endIndicator) {
+      this.endIndicator.replaceWith();
+    }
 
     for (let node of this.highlightNodes) {
       node.replaceWith(...node.childNodes);
@@ -477,7 +458,6 @@ export const reloadLabels = (clipfics) => {
 
   div.querySelectorAll('[data-cookiesynth]').forEach((e) => {
     let label = e.dataset.cookiesynth;
-    console.log('applying label:', label);
     if (label.length === 0) {
       return;
     }

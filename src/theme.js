@@ -59,7 +59,7 @@ export const useStyles = makeStyles({
   },
 
   'c-controls__hotkey-list': {
-    'max-height': 'calc(82vh - 340px)',
+    'max-height': 'calc(82vh - 220px)',
     'overflow-y': 'auto',
     'overflow-x': 'hidden',
   },

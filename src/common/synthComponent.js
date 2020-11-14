@@ -20,7 +20,6 @@ export const synthSubscription = () => {
     internal.callbacks.forEach((f) => f(...args));
   };
 
-  api.internal = internal;
   return api;
 };
 

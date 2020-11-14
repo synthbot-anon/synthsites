@@ -1,4 +1,4 @@
-import React, { useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useClipficsContext } from 'tasks.js';
 import TitledBox from 'common/TitledBox';
 import { splitAssignment } from './cookiesynth/common.js';
@@ -293,6 +293,11 @@ export const MetaDisplay = () => {
   const clipfics = useClipficsContext();
   const { forceUpdate } = useForceUpdate();
   const { classes } = useContext(ThemeContext);
+  const [range, setRange] = useState(null);
+
+  clipfics.api.selection.rangeSubscription.useSubscription((range) => {
+    setRange(range);
+  });
 
   useEffect(() => {
     const onReplayUpdated = () => {
@@ -305,7 +310,6 @@ export const MetaDisplay = () => {
     };
   });
 
-  const range = clipfics.api.selection.useRange();
   if (!range) {
     return <div className={classes['c-metareplay-box']} />;
   }

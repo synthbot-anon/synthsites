@@ -74,8 +74,6 @@ export default () => {
           return;
         }
 
-        console.log(ref.current);
-
         if (e.key === 'Enter' && e.shiftKey) {
           api.setSelection(ref.current.value);
         } else if (e.key === 'Escape') {
