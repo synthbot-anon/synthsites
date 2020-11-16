@@ -53,7 +53,10 @@ export const htmlToGreen = (node) => {
 
   const textLines = [];
   clone.querySelectorAll('p').forEach((e) => {
-    const textTag = e.textContent;
+    let textTag = e.textContent;
+    if (textTag.endsWith('\n')) {
+      textTag = textTag.substr(0, textTag.length - 1);
+    }
     textLines.push(textTag);
   });
 
@@ -74,7 +77,7 @@ export default ({ children }) => {
   useEffect(() => reloadLabels(clipfics));
 
   return (
-    <Paper
+    <div
       ref={clipfics.api.storyContainerRef}
       id="js-story-sheet"
       dangerouslySetInnerHTML={{ __html: div.innerHTML }}

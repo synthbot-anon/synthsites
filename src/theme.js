@@ -38,6 +38,7 @@ export const useStyles = makeStyles({
   'c-story-panel__container': {
     overflow: 'auto',
     height: '100%',
+    padding: theme.spacing(3),
   },
 
   'u-align-left': {
@@ -83,13 +84,16 @@ export const useStyles = makeStyles({
   },
 
   'c-labelmodal__container': {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    width: '50%',
-    transform: 'translate(-50%, -50%)',
+    // position: 'absolute',
+    // top: '50%',
+    // left: '50%',
+    // width: '50%',
+    // transform: 'translate(-50%, -50%)',
     background: 'white',
-    padding: theme.spacing(5),
+    // padding: theme.spacing(5),
+    padding: theme.spacing(1),
+    margin: theme.spacing(2),
+    width: '30%',
   },
 
   'c-labelmodal__textfield': {

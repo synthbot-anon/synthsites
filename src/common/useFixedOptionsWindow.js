@@ -3,6 +3,7 @@ import { Modal } from '@material-ui/core';
 import { ThemeContext } from 'theme.js';
 import synthComponent, { synthSubscription } from 'common/synthComponent.js';
 import { Button, Divider } from '@material-ui/core';
+import useForceUpdate from 'common/useForceUpdate.js';
 
 export default (hotkeyListener) => {
   const { api, components, internal } = synthComponent();
@@ -11,7 +12,8 @@ export default (hotkeyListener) => {
   internal.options = [];
   internal.resolveModal = null;
   internal.rejectModal = null;
-  internal.modalSubscriptions = synthSubscription();
+  internal.displaySubscription = synthSubscription();
+  api.completionSubscription = synthSubscription();
   internal.hotkeyListener = hotkeyListener;
 
   // capture hotkeys when this is shown
@@ -51,61 +53,64 @@ export default (hotkeyListener) => {
           }
         });
 
-      internal.modalSubscriptions.broadcast(true);
+      internal.displaySubscription.broadcast();
     });
   };
 
   api.cancelSelection = () => {
-    if (!internal.options) {
+    if (!internal.rejectModal) {
       return;
     }
 
-    internal.options = [];
-    internal.rejectModal();
     internal.hotkeyListener.deleteHotkeySet(internal.hotkeySet);
     internal.hotkeyListener.useHotkeySet(internal.previousHotkeySet);
 
-    internal.modalSubscriptions.broadcast(false);
+    internal.rejectModal();
+    internal.rejectModal = null;
+    internal.resolveModal = null;
+
+    api.completionSubscription.broadcast();
   };
 
   api.setSelection = (option) => {
-    if (!internal.options) {
+    if (!internal.resolveModal) {
       return;
     }
 
-    internal.fixedOptions.setLastSelection(option);
-    internal.options = [];
-    internal.resolveModal(option.value);
     internal.hotkeyListener.deleteHotkeySet(internal.hotkeySet);
     internal.hotkeyListener.useHotkeySet(internal.previousHotkeySet);
 
-    internal.modalSubscriptions.broadcast(false);
+    internal.fixedOptions.setLastSelection(option);
+    internal.resolveModal(option.value);
+    internal.rejectModal = null;
+    internal.resolveModal = null;
+
+    api.completionSubscription.broadcast();
   };
 
   const Display = () => {
-    const [open, setOpen] = useState(false);
+    const { forceUpdate } = useForceUpdate();
     const { classes } = useContext(ThemeContext);
-    internal.modalSubscriptions.useSubscription(setOpen);
 
+    internal.displaySubscription.useSubscription(forceUpdate);
+    
     let key = 0;
-
     return (
-      <Modal open={open} onClose={api.cancelSelection}>
-        <div className={classes['c-labelmodal__container']}>
-          <p>{internal.description}</p>
-          {Array.from(internal.options).map((option) => (
-            <Button
-              key={key++}
-              variant="outlined"
-              size="small"
-              color="primary"
-              onClick={() => api.setSelection(option)}
-            >
-              {`${option.shortcut} | ${option.description}`}
-            </Button>
-          ))}
-        </div>
-      </Modal>
+      <React.Fragment>
+        <p>{internal.description}</p>
+        {Array.from(internal.options).map((option) => (
+            <div key={key++}>
+              <Button
+                variant="outlined"
+                size="small"
+                color="primary"
+                onClick={() => api.setSelection(option)}
+              >
+                {`${option.shortcut} | ${option.description}`}
+              </Button>
+            </div>
+        ))}
+      </React.Fragment>
     );
   };
   components.Display = Display;

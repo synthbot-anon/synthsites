@@ -143,6 +143,10 @@ export default class RangeUtils {
         console.log(e);
       }
 
+      if (new RangeUtils(resultRange).getText().length === 0) {
+        return;
+      }
+      
       fn(resultRange);
     });
   }

@@ -14,6 +14,7 @@ import {
   Box,
   Tab,
   Tabs,
+  TextField,
 } from '@material-ui/core';
 import MenuIcon from '@material-ui/icons/Menu';
 
@@ -24,6 +25,8 @@ import useClipficsTask from 'tasks/useClipficsTask.js';
 import useForceUpdateControl from 'common/useForceUpdateControl.js';
 import useResourceManager from 'resources/useResourceManager.js';
 import synthComponent, { synthSubscription } from 'common/synthComponent.js';
+import useCompletableTextField from 'common/useCompletableTextField.js';
+import useSelectionModal from 'common/useSelectionModal.js';
 
 /**
  * Navigation bar at the top of the site. This doesn't serve any functional purpose at
@@ -102,6 +105,7 @@ const useTabs = () => {
   return { TabBar, addTab };
 };
 
+
 /**
  * Main app.
  */
@@ -124,21 +128,20 @@ const App = () => {
   } = useResourceManager(terminal);
 
   useEffect(() => {
-    const ctrlS = (e) => {
+    const exportLabels = (e) => {
       if (e.key === "s" && e.ctrlKey) {
         download();
         e.preventDefault();
       }
     }
 
-    document.addEventListener("keydown", ctrlS);
+    document.addEventListener("keydown", exportLabels);
     return () => {
-      document.removeEventListener("keydown", ctrlS);
+      document.removeEventListener("keydown", exportLabels);
     }
   });
 
   const clipfics = useClipficsTask(resourceManager, terminal);
-
   const clipficsTabs = clipfics.tabs;
 
   for (let { label, panel } of clipficsTabs) {

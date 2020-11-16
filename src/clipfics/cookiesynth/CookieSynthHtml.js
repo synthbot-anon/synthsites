@@ -15,7 +15,7 @@ export default ({ children }) => {
   useEffect(() => reloadLabels(clipfics));
 
   return (
-    <Paper
+    <div
       ref={clipfics.api.storyContainerRef}
       id="js-story-sheet"
       dangerouslySetInnerHTML={{ __html: div.innerHTML }}

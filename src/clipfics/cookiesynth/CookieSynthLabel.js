@@ -365,9 +365,9 @@ class LabelIndicator {
 
     // add the highlight
     highlightRange.apply((range) => {
-      if (new RangeUtils(range).getText().length === 0) {
-        return;
-      }
+      // if (new RangeUtils(range).getText().length === 0) {
+      //   return;
+      // }
       if (isMeta) {
         this.highlightMeta(range);
       } else {
@@ -497,8 +497,18 @@ export const reloadLabels = (clipfics) => {
       const startOffset = 0;
       start.parentNode.removeChild(start);
 
-      const endContainer = e.previousSibling;
-      const endOffset = endContainer.length;
+      console.log(e.previousSibling);
+      let endContainer = e.previousSibling;
+      let endOffset;
+
+      if (endContainer) {
+        endOffset = endContainer.length;
+      } else {
+        endContainer = e.parentNode;
+        endOffset = Array.prototype.indexOf.call(endContainer.children, e);
+        console.log('using custom end container/offset for', closeLabelType);
+      }
+
       e.parentNode.removeChild(e);
 
       range.setStart(startContainer, startOffset);

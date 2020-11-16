@@ -14,10 +14,12 @@ import RangeUtils from 'common/RangeUtils.js';
 import { Button } from '@material-ui/core';
 import synthComponent, { synthSubscription } from 'common/synthComponent.js';
 import useForceUpdateControl from 'common/useForceUpdateControl.js';
-import useFixedOptionsModal, { FixedOptions } from 'common/useFixedOptionsModal.js';
-import useAutocompleteModal, {
+import useFixedOptionsWindow, { FixedOptions } from 'common/useFixedOptionsWindow.js';
+import useAutocompleteWindow, {
   AutocompleteOptions,
-} from 'common/useAutocompleteModal.js';
+} from 'common/useAutocompleteWindow.js';
+import useSelectionModal from 'common/useSelectionModal.js';
+import { TextField } from '@material-ui/core';
 
 const PROP_HINTS = new Map();
 PROP_HINTS.set('character', 'e.g., Twilight Sparkle');
@@ -441,17 +443,61 @@ class AllowedValues {
     );
   }
 
-  requestSelection(property, fixedOptionModal, autocompleteModal) {
+  requestSelection(range, property, fixedOptionsModal, autocompleteModal) {
     const options = this.knownOptions.get(property);
     if (options instanceof FixedOptions) {
-      return fixedOptionModal.api.requestSelection(property, options);
+      return fixedOptionsModal.api.requestSelection(range, property, options);
     } else if (options instanceof AutocompleteOptions) {
-      return autocompleteModal.api.requestSelection(property, options);
+      return autocompleteModal.api.requestSelection(range, property, options);
     }
 
     throw ('Missing options for property', property);
   }
 }
+
+const createLabelSelectionModal = (useLabelingWindow) => {
+  const useLabelSelectionModal = (hotkeyListener) => {
+    const { api, internal, components } = synthComponent();
+
+    internal.labelingWindow = useLabelingWindow(hotkeyListener);
+    internal.selectionModal = useSelectionModal();
+
+    internal.selectionModal.api.cancelSubscription.useSubscription(() => {
+      internal.labelingWindow.api.cancelSelection();
+    });
+
+    api.requestSelection = (range, description, options) => {
+      return new Promise((resolve, reject) => {
+        const selectionPromise =  internal.labelingWindow.api.requestSelection(description, options)
+        internal.selectionModal.api.showModal(range);
+        selectionPromise.then((result) => {
+          internal.selectionModal.api.hideModal();
+          resolve(result);
+        }).catch((error) => {
+          internal.selectionModal.api.hideModal();
+          reject(error);
+        });
+      });
+    }
+
+    const Display = () => {
+      return (
+        <internal.selectionModal.components.Display>
+          <internal.labelingWindow.components.Display />
+        </internal.selectionModal.components.Display>
+      );
+    }
+    components.Display = Display;
+
+    return { api, components };
+  }
+
+  return useLabelSelectionModal;
+}
+
+const useFixedOptionsSelectionModal = createLabelSelectionModal(useFixedOptionsWindow);
+const useAutocompleteSelectionModal = createLabelSelectionModal(useAutocompleteWindow);
+
 
 const ALLOWED_VALUES = new AllowedValues();
 
@@ -746,8 +792,8 @@ const useLabeler = (clipfics) => {
   internal.modifyLabelCallback = null;
   internal.originalLabel = null;
 
-  internal.fixedOptionModal = useFixedOptionsModal(clipfics.api.hotkeyListener);
-  internal.autocompleteModal = useAutocompleteModal();
+  internal.autocompleteModal = useAutocompleteSelectionModal();
+  internal.fixedOptionsModal = useFixedOptionsSelectionModal(clipfics.api.hotkeyListener);
 
   api.lastLabel = '';
 
@@ -761,8 +807,9 @@ const useLabeler = (clipfics) => {
     internal.requestPropsLoop
       .forEach(pendingLabel.missingTemplateProperties, (moveToNext) => {
         ALLOWED_VALUES.requestSelection(
+          internal.selectionCache.savedRange,
           internal.requestPropsLoop.currentItem,
-          internal.fixedOptionModal,
+          internal.fixedOptionsModal,
           internal.autocompleteModal,
         )
           .then((value) => {
@@ -792,9 +839,19 @@ const useLabeler = (clipfics) => {
   };
 
   const AddLabelModals = () => {
+    // return (
+    //   <React.Fragment>
+    //     <internal.fixedOptionsModal.components.Display>
+    //       <internal.fixedOptions.components.Display />
+    //     </internal.fixedOptionsModal.components.Display>
+    //     <internal.autocompleteModal.components.Display>
+    //       <internal.autocomplete.components.Display />
+    //     </internal.autocompleteModal.components.Display>
+    //   </React.Fragment>
+    // );
     return (
       <React.Fragment>
-        <internal.fixedOptionModal.components.Display />
+        <internal.fixedOptionsModal.components.Display />
         <internal.autocompleteModal.components.Display />
       </React.Fragment>
     );

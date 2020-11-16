@@ -5,6 +5,7 @@ import synthComponent, { synthSubscription } from 'common/synthComponent.js';
 import { Button, Divider } from '@material-ui/core';
 import { TextField } from '@material-ui/core';
 import Autocomplete from '@material-ui/lab/Autocomplete';
+import useForceUpdate from 'common/useForceUpdate.js';
 
 export default () => {
   const { api, components, internal } = synthComponent();
@@ -12,7 +13,9 @@ export default () => {
   internal.options = [];
   internal.resolveModal = null;
   internal.rejectModal = null;
-  internal.modalSubscriptions = synthSubscription();
+  internal.displaySubscription = synthSubscription();
+
+  api.completionSubscription = synthSubscription();
 
   // capture hotkeys when this is shown
   // display list of options & hotkeys
@@ -30,50 +33,45 @@ export default () => {
       internal.resolveModal = resolve;
       internal.rejectModal = reject;
 
-      internal.modalSubscriptions.broadcast(true);
+      internal.displaySubscription.broadcast(true);
     });
   };
 
   api.cancelSelection = () => {
-    if (!internal.options) {
+    if (!internal.rejectModal) {
       return;
     }
 
-    internal.options = [];
     internal.rejectModal();
+    internal.rejectModal = null;
+    internal.resolveModal = null;
 
-    internal.modalSubscriptions.broadcast(false);
+    api.completionSubscription.broadcast();
   };
 
   api.setSelection = (selection) => {
-    if (!internal.options) {
+    if (!internal.resolveModal) {
       return;
     }
 
-    internal.autocompleteOptions.bump(selection);
-    internal.options = [];
     internal.resolveModal(selection);
+    internal.resolveModal = null;
+    internal.rejectModal = null;
 
-    internal.modalSubscriptions.broadcast(false);
+    // internal.displaySubscription.broadcast(false);
+    api.completionSubscription.broadcast();
+    internal.autocompleteOptions.bump(selection);
   };
 
   const Display = () => {
-    const [open, setOpen] = useState(false);
     const { classes } = useContext(ThemeContext);
     const ref = useRef();
-
-    internal.modalSubscriptions.useSubscription(setOpen);
+    
+    const { forceUpdate } = useForceUpdate();
+    internal.displaySubscription.useSubscription(forceUpdate);
 
     useEffect(() => {
-      if (!open) {
-        return;
-      }
-
       const hotkeyListener = (e) => {
-        if (!open) {
-          return;
-        }
-
         if (e.key === 'Enter' && e.shiftKey) {
           api.setSelection(ref.current.value);
         } else if (e.key === 'Escape') {
@@ -83,30 +81,28 @@ export default () => {
 
       document.addEventListener('keydown', hotkeyListener);
       return () => document.removeEventListener('keydown', hotkeyListener);
-    }, [open]);
+    });
 
     return (
-      <Modal open={open} onClose={api.cancelSelection}>
-        <div className={classes['c-labelmodal__container']}>
-          <p>{internal.description}</p>
-          <Divider />
-          <Autocomplete
-            options={internal.options}
-            autoHighlight
-            openOnFocus
-            autoComplete
-            getOptionLabel={(option) => option}
-            renderOption={(option) => {
-              return <div>{option}</div>;
-            }}
-            renderInput={(params) => (
-              <TextField {...params} inputRef={ref} autoFocus />
-            )}
-            onChange={(e, newValue) => api.setSelection(newValue)}
-            noOptionsText="Hit Shift+Enter to use a custom value"
-          />
-        </div>
-      </Modal>
+      <React.Fragment>
+        <p>{internal.description}</p>
+        <Divider />
+        <Autocomplete
+          options={internal.options}
+          autoHighlight
+          openOnFocus
+          autoComplete
+          getOptionLabel={(option) => option}
+          renderOption={(option) => {
+            return <div>{option}</div>;
+          }}
+          renderInput={(params) => (
+            <TextField {...params} inputRef={ref} autoFocus />
+          )}
+          onChange={(e, newValue) => api.setSelection(newValue)}
+          noOptionsText="Hit Shift+Enter to use a custom value"
+        />
+      </React.Fragment>
     );
   };
   components.Display = Display;
