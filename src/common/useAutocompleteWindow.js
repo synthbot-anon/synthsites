@@ -4,8 +4,10 @@ import { ThemeContext } from 'theme.js';
 import synthComponent, { synthSubscription } from 'common/synthComponent.js';
 import { Button, Divider } from '@material-ui/core';
 import { TextField } from '@material-ui/core';
-import Autocomplete from '@material-ui/lab/Autocomplete';
+import Autocomplete, { createFilterOptions } from '@material-ui/lab/Autocomplete';
 import useForceUpdate from 'common/useForceUpdate.js';
+
+const filter = createFilterOptions();
 
 export default () => {
   const { api, components, internal } = synthComponent();
@@ -65,16 +67,12 @@ export default () => {
 
   const Display = () => {
     const { classes } = useContext(ThemeContext);
-    const ref = useRef();
-    
     const { forceUpdate } = useForceUpdate();
     internal.displaySubscription.useSubscription(forceUpdate);
 
     useEffect(() => {
       const hotkeyListener = (e) => {
-        if (e.key === 'Enter' && e.shiftKey) {
-          api.setSelection(ref.current.value);
-        } else if (e.key === 'Escape') {
+        if (e.key === 'Escape') {
           api.cancelSelection();
         }
       };
@@ -92,15 +90,51 @@ export default () => {
           autoHighlight
           openOnFocus
           autoComplete
-          getOptionLabel={(option) => option}
+          freeSolo
+          getOptionLabel={(option) => {
+            if (typeof option !== 'string') {
+              option = option.inputValue;
+            }
+            return option;
+          }}
           renderOption={(option) => {
+            if (typeof option !== 'string') {
+              return (
+                <div>
+                  <b>{`+Add ${option.inputValue}`}</b>
+                </div>
+              );
+            }
+
             return <div>{option}</div>;
           }}
-          renderInput={(params) => (
-            <TextField {...params} inputRef={ref} autoFocus />
-          )}
-          onChange={(e, newValue) => api.setSelection(newValue)}
-          noOptionsText="Hit Shift+Enter to use a custom value"
+          renderInput={(params) => {
+            console.log(params);
+            params.inputProps.className = `${params.inputProps.className} ${classes['c-autocomplete__input']}`;
+            return (
+              <TextField
+                autoFocus
+                label="Search for a value"
+                variant="outlined"
+                {...params}
+              />
+            );
+          }}
+          onChange={(e, newValue) => {
+            if (typeof newValue !== 'string') {
+              newValue = newValue.inputValue;
+            }
+            api.setSelection(newValue);
+          }}
+          filterOptions={(options, params) => {
+            const filtered = filter(options, params);
+            if (params.inputValue !== '') {
+              filtered.push({
+                inputValue: params.inputValue,
+              });
+            }
+            return filtered;
+          }}
         />
       </React.Fragment>
     );

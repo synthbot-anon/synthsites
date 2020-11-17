@@ -175,4 +175,8 @@ export const useStyles = makeStyles({
   'c-metareplay-box__assignment': {
     color: 'rgba(0, 0, 0, 0.54)',
   },
+
+  'c-autocomplete__input': {
+    color: '#686868',
+  },
 });

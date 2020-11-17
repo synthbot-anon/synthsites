@@ -17,9 +17,7 @@ const addOverlay = (rect) => {
   `;
 
   div.style.cssText = cssText;
-
   document.body.appendChild(div);
-  console.log('appending', div, rect, cssText);
 
   return div;
 };
@@ -32,7 +30,6 @@ export default () => {
   api.cancelSubscription = synthSubscription();
 
   api.showModal = (range) => {
-    console.log("showing modal");
     internal.highlightNodes.forEach((n) => n.replaceWith(...n.childNodes));
 
     // get the first (top-left) rectangle

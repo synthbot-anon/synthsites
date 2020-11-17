@@ -15,6 +15,7 @@ import { Button } from '@material-ui/core';
 import synthComponent, { synthSubscription } from 'common/synthComponent.js';
 import useForceUpdateControl from 'common/useForceUpdateControl.js';
 import useFixedOptionsWindow, { FixedOptions } from 'common/useFixedOptionsWindow.js';
+import useTextFieldWindow from 'common/useTextFieldWindow.js';
 import useAutocompleteWindow, {
   AutocompleteOptions,
 } from 'common/useAutocompleteWindow.js';
@@ -443,9 +444,11 @@ class AllowedValues {
     );
   }
 
-  requestSelection(range, property, fixedOptionsModal, autocompleteModal) {
+  requestSelection(range, property, fixedOptionsModal, autocompleteModal, textFieldModal) {
     const options = this.knownOptions.get(property);
-    if (options instanceof FixedOptions) {
+    if (!options) {
+      return textFieldModal.api.requestSelection(range, property, options);
+    } else if (options instanceof FixedOptions) {
       return fixedOptionsModal.api.requestSelection(range, property, options);
     } else if (options instanceof AutocompleteOptions) {
       return autocompleteModal.api.requestSelection(range, property, options);
@@ -497,6 +500,7 @@ const createLabelSelectionModal = (useLabelingWindow) => {
 
 const useFixedOptionsSelectionModal = createLabelSelectionModal(useFixedOptionsWindow);
 const useAutocompleteSelectionModal = createLabelSelectionModal(useAutocompleteWindow);
+const useTextFieldSelectionModal = createLabelSelectionModal(useTextFieldWindow);
 
 
 const ALLOWED_VALUES = new AllowedValues();
@@ -794,6 +798,7 @@ const useLabeler = (clipfics) => {
 
   internal.autocompleteModal = useAutocompleteSelectionModal();
   internal.fixedOptionsModal = useFixedOptionsSelectionModal(clipfics.api.hotkeyListener);
+  internal.textFieldModal = useTextFieldSelectionModal();
 
   api.lastLabel = '';
 
@@ -811,6 +816,7 @@ const useLabeler = (clipfics) => {
           internal.requestPropsLoop.currentItem,
           internal.fixedOptionsModal,
           internal.autocompleteModal,
+          internal.textFieldModal,
         )
           .then((value) => {
             pendingLabel.setNextValue(value);
@@ -853,6 +859,7 @@ const useLabeler = (clipfics) => {
       <React.Fragment>
         <internal.fixedOptionsModal.components.Display />
         <internal.autocompleteModal.components.Display />
+        <internal.textFieldModal.components.Display />
       </React.Fragment>
     );
   };
