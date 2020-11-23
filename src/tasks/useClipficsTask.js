@@ -114,28 +114,77 @@ class StandardHotkeySetter {
   constructor(clipkeys) {
     this.#clipkeys = clipkeys;
 
-    this.changeNarrator = (shortcut) => clipkeys.api.createLabelHotkey(shortcut, 'meta element="narrator" character="?"');
-    this.labelSpeaker = (shortcut) => clipkeys.api.createLabelHotkey(shortcut, 'spoken character="?"');
-    this.speakerDescription = (shortcut) => clipkeys.api.createLabelHotkey(shortcut, 'meta character="?" age="?" gender="?"');
-    this.labelEmotion = (shortcut) => clipkeys.api.createLabelHotkey(shortcut, 'spoken emotion="?"');
-    this.defaultEmotion = (shortcut) => clipkeys.api.createLabelHotkey(shortcut, 'meta character="?" emotion="?"');
-    this.tunePhrase = (shortcut) => clipkeys.api.createLabelHotkey(shortcut, 'tuned rate="?" stress="?" volume="?" pitch="?"');
-    this.labelPause = (shortcut) => clipkeys.api.createLabelHotkey(shortcut, 'timed pause-before="?" pause-after="?"');
-    this.labelDirection = (shortcut) => clipkeys.api.createLabelHotkey(shortcut, 'positioned balance="?"');
-    this.labelPronunciation = (shortcut) => clipkeys.api.createLabelHotkey(shortcut, 'spoken-as pronunciation="?"');
-    this.labelEffects = (shortcut) => clipkeys.api.createLabelHotkey(shortcut, 'voiced effects="?"');
+    this.changeNarrator = (shortcut) =>
+      clipkeys.api.createLabelHotkey(
+        shortcut,
+        'meta element="narrator" character="?"',
+      );
+    this.labelSpeaker = (shortcut) =>
+      clipkeys.api.createLabelHotkey(shortcut, 'spoken character="?"');
+    this.speakerDescription = (shortcut) =>
+      clipkeys.api.createLabelHotkey(
+        shortcut,
+        'meta character="?" age="?" gender="?"',
+      );
+    this.labelEmotion = (shortcut) =>
+      clipkeys.api.createLabelHotkey(shortcut, 'spoken emotion="?"');
+    this.defaultEmotion = (shortcut) =>
+      clipkeys.api.createLabelHotkey(shortcut, 'meta character="?" emotion="?"');
+    this.tunePhrase = (shortcut) =>
+      clipkeys.api.createLabelHotkey(
+        shortcut,
+        'tuned rate="?" stress="?" volume="?" pitch="?"',
+      );
+    this.labelPause = (shortcut) =>
+      clipkeys.api.createLabelHotkey(
+        shortcut,
+        'timed pause-before="?" pause-after="?"',
+      );
+    this.labelDirection = (shortcut) =>
+      clipkeys.api.createLabelHotkey(shortcut, 'positioned balance="?"');
+    this.labelPronunciation = (shortcut) =>
+      clipkeys.api.createLabelHotkey(shortcut, 'spoken-as pronunciation="?"');
+    this.labelEffects = (shortcut) =>
+      clipkeys.api.createLabelHotkey(shortcut, 'voiced effects="?"');
     this.ignore = (shortcut) => clipkeys.api.createLabelHotkey(shortcut, 'ignored');
-    this.repeatLastLabel = (shortcut) => clipkeys.api.createRepeatLabelHotkey(shortcut);
-    this.nextParagraph = (shortcut) => clipkeys.api.createNextSelectionHotkey(shortcut, /\S.*\S?/g, 'Select next paragraph');
-    this.prevParagraph = (shortcut) => clipkeys.api.createPrevSelectionHotkey(shortcut, /\S.*\S?/g, 'Select previous paragraph');
-    this.nextQuote = (shortcut) => clipkeys.api.createNextSelectionHotkey(shortcut, /"[^ ][^"]*"?/g, 'Select next quote');
-    this.prevQuote = (shortcut) => clipkeys.api.createPrevSelectionHotkey(shortcut, /"[^ ][^"]*"?/g, 'Select previous quote');
-    this.nextPhrase = (shortcut) => clipkeys.api.createNextSelectionHotkey(shortcut, /(?:\w[^.?!"]*[^ "][.?!]*)/g, 'Select next phrase');
-    this.prevPhrase = (shortcut) => clipkeys.api.createPrevSelectionHotkey(
-      shortcut,
-      /(?:\w[^.?!"]*[^ "][.?!]*)/g,
-      'Select previous phrase',
-    );
+    this.repeatLastLabel = (shortcut) =>
+      clipkeys.api.createRepeatLabelHotkey(shortcut);
+    this.nextParagraph = (shortcut) =>
+      clipkeys.api.createNextSelectionHotkey(
+        shortcut,
+        /\S.*\S?/g,
+        'Select next paragraph',
+      );
+    this.prevParagraph = (shortcut) =>
+      clipkeys.api.createPrevSelectionHotkey(
+        shortcut,
+        /\S.*\S?/g,
+        'Select previous paragraph',
+      );
+    this.nextQuote = (shortcut) =>
+      clipkeys.api.createNextSelectionHotkey(
+        shortcut,
+        /"[^ ][^"]*"?/g,
+        'Select next quote',
+      );
+    this.prevQuote = (shortcut) =>
+      clipkeys.api.createPrevSelectionHotkey(
+        shortcut,
+        /"[^ ][^"]*"?/g,
+        'Select previous quote',
+      );
+    this.nextPhrase = (shortcut) =>
+      clipkeys.api.createNextSelectionHotkey(
+        shortcut,
+        /(?:\w[^.?!"]*[^ "][.?!]*)/g,
+        'Select next phrase',
+      );
+    this.prevPhrase = (shortcut) =>
+      clipkeys.api.createPrevSelectionHotkey(
+        shortcut,
+        /(?:\w[^.?!"]*[^ "][.?!]*)/g,
+        'Select previous phrase',
+      );
   }
 
   clearHotkeys() {
@@ -160,13 +209,13 @@ const addUSHotkeys = (hotkeySetter) => {
   hotkeySetter.speakerDescription('!');
   hotkeySetter.defaultEmotion('@');
 
-  hotkeySetter.nextParagraph('>');
   hotkeySetter.prevParagraph('<');
-  hotkeySetter.nextQuote("'");
+  hotkeySetter.nextParagraph('>');
   hotkeySetter.prevQuote('"');
-  hotkeySetter.nextPhrase('.');
+  hotkeySetter.nextQuote("'");
   hotkeySetter.prevPhrase(',');
-}
+  hotkeySetter.nextPhrase('.');
+};
 
 const addUKHotkeys = (hotkeySetter) => {
   hotkeySetter.clearHotkeys();
@@ -185,13 +234,13 @@ const addUKHotkeys = (hotkeySetter) => {
   hotkeySetter.speakerDescription('!');
   hotkeySetter.defaultEmotion('"');
 
-  hotkeySetter.nextParagraph('>');
   hotkeySetter.prevParagraph('<');
-  hotkeySetter.nextQuote("'");
+  hotkeySetter.nextParagraph('>');
   hotkeySetter.prevQuote('@');
-  hotkeySetter.nextPhrase('.');
+  hotkeySetter.nextQuote("'");
   hotkeySetter.prevPhrase(',');
-}
+  hotkeySetter.nextPhrase('.');
+};
 
 const LOCALIZATION_OPTIONS = ['american', 'british'];
 const localize = (hotkeySetter, locale) => {
@@ -200,7 +249,7 @@ const localize = (hotkeySetter, locale) => {
   } else if (locale === 'british') {
     addUKHotkeys(hotkeySetter);
   }
-}
+};
 
 const LocalizationLine = ({ hotkeySetter }) => {
   const [localization, setLocalization] = useState(LOCALIZATION_OPTIONS[0]);
@@ -210,19 +259,19 @@ const LocalizationLine = ({ hotkeySetter }) => {
     const onClick = () => {
       localize(hotkeySetter, option);
       setLocalization(option);
-    }
+    };
 
     if (localization !== option) {
       alternatives.push(
-        <TerminalButton key={option} onClick={onClick}>i'm {option}</TerminalButton>
+        <TerminalButton key={option} onClick={onClick}>
+          i'm {option}
+        </TerminalButton>,
       );
     }
   }
 
-  return (
-    <TerminalSpan children={alternatives} />
-  );
-}
+  return <TerminalSpan children={alternatives} />;
+};
 
 export default (resourceManager, terminal) => {
   const { api, components } = synthComponent();
@@ -324,7 +373,7 @@ export default (resourceManager, terminal) => {
             );
           };
 
-          api.saveResource = saveResource;    
+          api.saveResource = saveResource;
           return () => {
             api.saveResource = null;
           };
@@ -346,7 +395,10 @@ export default (resourceManager, terminal) => {
     );
     return () => {
       resourceManager.unregisterResourceHandler('story/prose', createProseView);
-      resourceManager.unregisterResourceHandler('story/greentext', createGreentextView);
+      resourceManager.unregisterResourceHandler(
+        'story/greentext',
+        createGreentextView,
+      );
     };
   }, []);
 

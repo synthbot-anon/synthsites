@@ -41,13 +41,19 @@ export const useStyles = makeStyles({
     padding: theme.spacing(3),
   },
 
-  'u-align-left': {
-    'text-align': 'left',
-  },
-
   'c-control-panel': {
-    'max-height': 'calc(82vh - 64px)',
-    height: 'calc(82vh - 64px)',
+    position: 'absolute',
+    top: '64px',
+    bottom: '170px',
+    right: '8px',
+    overflow: 'auto',
+    width: '100%',
+    'border-radius': '4px',
+    'border-style': 'solid',
+    'border-width': '0px 0px 0px 2px',
+    'border-color': '#F7F7F7',
+    // 'max-height': 'calc(82vh - 64px)',
+    // height: 'calc(82vh - 64px)',
   },
 
   'c-controls--fill-width': {
@@ -60,14 +66,51 @@ export const useStyles = makeStyles({
   },
 
   'c-controls__hotkey-list': {
-    'max-height': 'calc(82vh - 220px)',
+    'max-width': '540px',
     'overflow-y': 'auto',
     'overflow-x': 'hidden',
+    'width': '100%',
   },
 
   'c-hotkey__paper': {
     padding: theme.spacing(1),
     'line-height': '22px',
+  },
+
+  'c-hotkey__container': {
+    'position': 'relative',
+    'width': '100%',
+    'text-align': 'left',
+    'padding': theme.spacing(1),
+    'margin-bottom': '8px',
+  },
+
+  'c-hotkey__description': {
+    'border-style': 'solid',
+    'border-width': '0px 0px 1px 0px',
+    'border-color': '#F7F7F7',
+    padding: theme.spacing(1),
+    margin: theme.spacing(1),
+  },
+
+  'c-hotkey__shortcut': {
+    position: 'absolute',
+    right: 0,
+    'min-width': '24px',
+    'text-align': 'center',
+  },
+
+  'o-keyboard-key': {
+    'background-color': '#F7F7F7',
+    'background-image': 'linear-gradient(top,#F7F7F7, #E4E4E4)',
+    'filter': 'progid :DXImageTransform.Microsoft.gradient(startColorStr="#F7F7F7",EndColorStr="#E4E4E4")',
+    'border-color': '#D2D2D2',
+    'border-radius': '3px',
+    'border-style': 'solid',
+    'border-width': '1px 1px 3px',
+    'font-family': '"Courier New", Courier, monospace',
+    'text-shadow': '1px 1px #FFFFFF',
+    cursor: 'pointer',
   },
 
   'c-hotkey--enabled': {
@@ -125,11 +168,11 @@ export const useStyles = makeStyles({
     'padding-top': theme.spacing(1),
     'padding-left': theme.spacing(1),
     'padding-right': theme.spacing(1),
-    width: 'calc(100% - 8px)',
-    'max-width': 'calc(100% - 16px)',
     'max-height': 'calc(18vh - 16px)',
-    bottom: '0%',
-    height: 'calc(18vh - 8px)',
+    height: 'calc(18vh - 16px)',
+    bottom: '8px',
+    left: '8px',
+    right: '8px',
     overflow: 'auto',
     position: 'absolute',
     background: '#f8f8f8',

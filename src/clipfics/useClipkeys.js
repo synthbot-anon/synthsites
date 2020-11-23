@@ -11,7 +11,7 @@ import CookieSynthLabel, {
 } from './cookiesynth/CookieSynthLabel.js';
 import { isLabelValid } from './cookiesynth/common.js';
 import RangeUtils from 'common/RangeUtils.js';
-import { Button } from '@material-ui/core';
+import { Button, Link } from '@material-ui/core';
 import synthComponent, { synthSubscription } from 'common/synthComponent.js';
 import useForceUpdateControl from 'common/useForceUpdateControl.js';
 import useFixedOptionsWindow, { FixedOptions } from 'common/useFixedOptionsWindow.js';
@@ -315,7 +315,7 @@ class AllowedValues {
         .addOption('Mean Pinkie Pie')
         .addOption('Mean Rainbow Dash')
         .addOption('Mean Rarity')
-        .addOption('Mean Twilight Sparkle')
+        .addOption('Mean Twilight Sparkle'),
     );
 
     this.knownOptions.set(
@@ -336,7 +336,7 @@ class AllowedValues {
         .addOption('Surprised')
         .addOption('Singing')
         .addOption('Fear')
-        .addOption('Serious')
+        .addOption('Serious'),
     );
 
     this.knownOptions.set(
@@ -444,7 +444,13 @@ class AllowedValues {
     );
   }
 
-  requestSelection(range, property, fixedOptionsModal, autocompleteModal, textFieldModal) {
+  requestSelection(
+    range,
+    property,
+    fixedOptionsModal,
+    autocompleteModal,
+    textFieldModal,
+  ) {
     const options = this.knownOptions.get(property);
     if (!options) {
       return textFieldModal.api.requestSelection(range, property, options);
@@ -471,17 +477,22 @@ const createLabelSelectionModal = (useLabelingWindow) => {
 
     api.requestSelection = (range, description, options) => {
       return new Promise((resolve, reject) => {
-        const selectionPromise =  internal.labelingWindow.api.requestSelection(description, options)
+        const selectionPromise = internal.labelingWindow.api.requestSelection(
+          description,
+          options,
+        );
         internal.selectionModal.api.showModal(range);
-        selectionPromise.then((result) => {
-          internal.selectionModal.api.hideModal();
-          resolve(result);
-        }).catch((error) => {
-          internal.selectionModal.api.hideModal();
-          reject(error);
-        });
+        selectionPromise
+          .then((result) => {
+            internal.selectionModal.api.hideModal();
+            resolve(result);
+          })
+          .catch((error) => {
+            internal.selectionModal.api.hideModal();
+            reject(error);
+          });
       });
-    }
+    };
 
     const Display = () => {
       return (
@@ -489,19 +500,22 @@ const createLabelSelectionModal = (useLabelingWindow) => {
           <internal.labelingWindow.components.Display />
         </internal.selectionModal.components.Display>
       );
-    }
+    };
     components.Display = Display;
 
     return { api, components };
-  }
+  };
 
   return useLabelSelectionModal;
-}
+};
 
-const useFixedOptionsSelectionModal = createLabelSelectionModal(useFixedOptionsWindow);
-const useAutocompleteSelectionModal = createLabelSelectionModal(useAutocompleteWindow);
+const useFixedOptionsSelectionModal = createLabelSelectionModal(
+  useFixedOptionsWindow,
+);
+const useAutocompleteSelectionModal = createLabelSelectionModal(
+  useAutocompleteWindow,
+);
 const useTextFieldSelectionModal = createLabelSelectionModal(useTextFieldWindow);
-
 
 const ALLOWED_VALUES = new AllowedValues();
 
@@ -512,59 +526,52 @@ const getLabelHint = (property) => {
 const KNOWN_DESCRIPTIONS = [
   new TemplateDescription(
     'meta element="narrator" character="?"',
-    'Change the narrator',
+    'Narrator',
   ),
-  new TemplateDescription('spoken character="?"', 'Label the speaker'),
+  new TemplateDescription('spoken character="?"', 'Speaker'),
   new TemplateDescription(
     'spoken character="{character}"',
-    'Label speaker as {character}',
+    'Speaker {character}',
   ),
   new TemplateDescription(
     'meta character="?" age="?" gender="?"',
-    'Set the character description (age, gender)',
+    "Set a character's age, gender",
   ),
-  new TemplateDescription('spoken emotion="?"', 'Label the emotion'),
+  new TemplateDescription('spoken emotion="?"', 'Emotion'),
   new TemplateDescription(
     'spoken emotion="{emotion}"',
-    'Label the emotion as {emotion}',
+    'Emotion {emotion}',
   ),
   new TemplateDescription(
     'meta character="{character}" emotion="?"',
-    "Change {character}'s default emotion",
-  ),
-  new TemplateDescription(
-    'meta character="?" emotion="{emotion}"',
-    "Change a character's default emotion to {emotion}",
+    "Set {character}'s default emotion",
   ),
   new TemplateDescription(
     'meta character="?" emotion="?"',
-    "Change a character's default emotion",
+    "Set a character's default emotion",
   ),
   new TemplateDescription(
     'tuned rate="?" stress="?" volume="?" pitch="?"',
-    'Tune how a phrase is spoken',
+    'Rate, stress, volume, pitch',
   ),
   new TemplateDescription(
     'meta character="?" rate="?" volume="?" pitch="?"',
-    "Change a character's default tuning",
+    "Set a character's default rate, stress, volume, pitch",
   ),
   new TemplateDescription(
     'timed pause-before="?" pause-after="?"',
-    'Add a pause before or after a phrase',
+    'Pause before or after',
   ),
   new TemplateDescription(
     'positioned balance="?"',
-    'Label the direction a character is speaking from',
+    'Speech positioning',
   ),
   new TemplateDescription(
     'spoken-as pronunciation="?"',
-    'Manually label how to pronounce a phrase',
+    'Pronunciation',
   ),
-  new TemplateDescription('ignored', "Don't create a clip for this line"),
-  new TemplateDescription(
-    'voiced effects="?"',
-    'Label speech for sound effects',
-  ),
+  new TemplateDescription('ignored', "Ignore this line"),
+  new TemplateDescription('voiced effects="?"', 'Sound effects'),
 ];
 
 const getLabelDescription = (partialLabel) => {
@@ -585,18 +592,21 @@ const getParameterSetter = (partialLabel) => {
   // # create a sequence of dialogs, one for each parameter
 };
 
-
-
 const SingleEnabledClipkey = ({ shortcut, action, description }) => {
   const { classes } = useContext(ThemeContext);
-  const classNames = `${classes['u-align-left']}`;
+  const containerClassName = `${classes['o-keyboard-key']} ${classes['c-hotkey__container']}`;
+  const descrClassName = classes['c-hotkey__description'];
+  const shortcutClassName = `${classes['c-hotkey__shortcut']}`;
 
   return (
-    <div>
-      <Button className={classNames} variant="outlined" size="small" color="primary" onClick={action}>
-        {`${shortcut} | ${description}`}
-      </Button>
-    </div>
+    <button className={containerClassName} onClick={action}>
+        <span className={descrClassName} >
+          {description}
+        </span>
+        <span className={shortcutClassName}>
+          {shortcut}
+        </span>
+    </button>
   );
 };
 
@@ -797,7 +807,9 @@ const useLabeler = (clipfics) => {
   internal.originalLabel = null;
 
   internal.autocompleteModal = useAutocompleteSelectionModal();
-  internal.fixedOptionsModal = useFixedOptionsSelectionModal(clipfics.api.hotkeyListener);
+  internal.fixedOptionsModal = useFixedOptionsSelectionModal(
+    clipfics.api.hotkeyListener,
+  );
   internal.textFieldModal = useTextFieldSelectionModal();
 
   api.lastLabel = '';
@@ -906,7 +918,7 @@ export default (clipfics) => {
     api.createHotkey(
       shortcut,
       () => addTemplatedLabel(labeler.api.lastLabel)(),
-      'Repeat last label',
+      'Repeat the last label',
     );
   };
 

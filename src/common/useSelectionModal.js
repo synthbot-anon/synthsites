@@ -5,7 +5,7 @@ import { ThemeContext } from 'theme.js';
 import RangeUtils from 'common/RangeUtils.js';
 
 const addOverlay = (rect) => {
-  const div = document.createElement("div");
+  const div = document.createElement('div');
   const cssText = `
     background-color:#c8c8c848;
     color:#000;
@@ -69,7 +69,7 @@ export default () => {
     // rangeUtils.apply((range) => {
     //   const highlighter = document.createElement('span');
     //   highlighter.style.cssText = 'background-color:#c8c8c8;color:#000';
-      
+
     //   range.surroundContents(highlighter);
     //   internal.highlightNodes.push(highlighter);
     // });
@@ -93,7 +93,11 @@ export default () => {
 
     return (
       <Modal open={open} onClose={() => api.cancelSubscription.broadcast()}>
-        <div style={internal.style} className={classes['c-labelmodal__container']} children={children} />
+        <div
+          style={internal.style}
+          className={classes['c-labelmodal__container']}
+          children={children}
+        />
       </Modal>
     );
   };

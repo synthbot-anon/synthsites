@@ -44,14 +44,11 @@ export default (hotkeyListener) => {
         );
       }
 
-      internal.hotkeyListener.registerHotkey(
-        internal.hotkeySet,
-        'Enter',
-        () => {
-          if (internal.fixedOptions.lastSelection) {
-            api.setSelection(internal.fixedOptions.lastSelection);
-          }
-        });
+      internal.hotkeyListener.registerHotkey(internal.hotkeySet, 'Enter', () => {
+        if (internal.fixedOptions.lastSelection) {
+          api.setSelection(internal.fixedOptions.lastSelection);
+        }
+      });
 
       internal.displaySubscription.broadcast();
     });
@@ -93,22 +90,22 @@ export default (hotkeyListener) => {
     const { classes } = useContext(ThemeContext);
 
     internal.displaySubscription.useSubscription(forceUpdate);
-    
+
     let key = 0;
     return (
       <React.Fragment>
         <p>{internal.description}</p>
         {Array.from(internal.options).map((option) => (
-            <div key={key++}>
-              <Button
-                variant="outlined"
-                size="small"
-                color="primary"
-                onClick={() => api.setSelection(option)}
-              >
-                {`${option.shortcut} | ${option.description}`}
-              </Button>
-            </div>
+          <div key={key++}>
+            <Button
+              variant="outlined"
+              size="small"
+              color="primary"
+              onClick={() => api.setSelection(option)}
+            >
+              {`${option.shortcut} | ${option.description}`}
+            </Button>
+          </div>
         ))}
       </React.Fragment>
     );

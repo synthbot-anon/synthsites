@@ -10,12 +10,12 @@ export default () => {
   api.openModal = () => {
     api.isModalOpen = true;
     internal.subscription.broadcast();
-  }
+  };
 
   api.closeModal = () => {
     api.isModalOpen = false;
     internal.subscription.broadcast();
-  }
+  };
 
   api.useSubscription = internal.subscription.useSubscription;
 
