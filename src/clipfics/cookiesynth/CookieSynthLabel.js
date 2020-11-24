@@ -47,12 +47,14 @@ export class TemplateDescription {
   type;
   properties;
   values;
+  propDescriptions;
 
-  constructor(partialLabel, description) {
+  constructor(partialLabel, description, propDescriptions) {
     this.#description = description;
     this.type = getTypeFromLabel(partialLabel);
     this.properties = matchesToString(getAllProperties(partialLabel));
     this.values = matchesToString(getAllValues(partialLabel));
+    this.propDescriptions = propDescriptions || [];
 
     if (new Set(this.properties).size !== this.properties.length) {
       console.log(
@@ -125,13 +127,30 @@ export class TemplateDescription {
     // Everything checks out.
     return result;
   }
+
+  getPropDescription(prop) {
+    let descOffset = 0;
+
+    for (let i = 0; i < this.properties.length; i++) {
+      let descriptionAllowed = (this.values[i] == "?");
+      if (!descriptionAllowed) {
+        continue;
+      }
+
+      if (prop == this.properties[i]) {
+        return this.propDescriptions[descOffset];
+      }
+
+      descOffset += 1;
+    }
+  }
 }
 
 export default class CookieSynthLabel {
   missingTemplateProperties = [];
   #templatePropertyOffsets = [];
   providedValues = [];
-  #template;
+  template;
   #range;
   completedLabel;
 
@@ -146,7 +165,7 @@ export default class CookieSynthLabel {
     }
 
     this.#range = range;
-    this.#template = template;
+    this.template = template;
   }
 
   setNextValue(value) {
@@ -164,7 +183,7 @@ export default class CookieSynthLabel {
       return this.completedLabel;
     }
 
-    let originalLabel = this.#template;
+    let originalLabel = this.template;
     let result = '';
     let lastOffset = 0;
     for (let i = 0; i < this.providedValues.length; i++) {

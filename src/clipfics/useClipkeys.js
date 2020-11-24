@@ -22,21 +22,6 @@ import useAutocompleteWindow, {
 import useSelectionModal from 'common/useSelectionModal.js';
 import { TextField } from '@material-ui/core';
 
-const PROP_HINTS = new Map();
-PROP_HINTS.set('character', 'e.g., Twilight Sparkle');
-PROP_HINTS.set('age', 'baby, foal, teen, adult, elder');
-PROP_HINTS.set('gender', 'male, female');
-PROP_HINTS.set('emotion', 'e.g., excited');
-PROP_HINTS.set('rate', 'fast, medium, slow');
-PROP_HINTS.set('stress', 'none, strong, moderate, reduced');
-PROP_HINTS.set('volume', 'whisper, soft, medium, loud, x-loud');
-PROP_HINTS.set('pitch', 'low, high');
-PROP_HINTS.set('pause-before', 'none, weak, medium, strong');
-PROP_HINTS.set('pause-after', 'none, weak, medium, strong');
-PROP_HINTS.set('balance', 'left, center, right, left-to-center, left-to-right, etc.');
-PROP_HINTS.set('effects', 'subvocalized, memory, royal canterlot voice, muted');
-PROP_HINTS.set('pronunciation', 'e.g., Dear Princess {S AH0 L EH1 S T IY0 AH2}');
-
 /*
   active hotkey -> label specification
   label specification {
@@ -56,7 +41,7 @@ class AllowedValues {
   constructor() {
     this.knownOptions.set(
       'character',
-      new AutocompleteOptions()
+      new AutocompleteOptions('Character voice')
         .addOption('Adagio Dazzle')
         .addOption('Ahuizotl')
         .addOption('AK Yearling')
@@ -320,7 +305,7 @@ class AllowedValues {
 
     this.knownOptions.set(
       'emotion',
-      new AutocompleteOptions()
+      new AutocompleteOptions('Emotion to convey')
         .addOption('Neutral')
         .addOption('Anxious')
         .addOption('Happy')
@@ -341,7 +326,7 @@ class AllowedValues {
 
     this.knownOptions.set(
       'age',
-      new FixedOptions()
+      new FixedOptions('Age of the character')
         .addOption('1', 'Baby')
         .addOption('2', 'Foal')
         .addOption('3', 'Teen')
@@ -351,21 +336,23 @@ class AllowedValues {
 
     this.knownOptions.set(
       'gender',
-      new FixedOptions().addOption('1', 'Male').addOption('2', 'Female'),
+      new FixedOptions('Masculine or feminine voice')
+        .addOption('1', 'Male')
+        .addOption('2', 'Female')
+        .addOption('3', 'Neutral'),
     );
 
     this.knownOptions.set(
       'rate',
-      new FixedOptions()
+      new FixedOptions('Rate/speed of speech')
         .addOption('1', 'Default')
-        .addOption('2', 'Slow')
-        .addOption('3', 'Medium')
-        .addOption('4', 'Fast'),
+        .addOption('2', 'Slower')
+        .addOption('3', 'Faster'),
     );
 
     this.knownOptions.set(
       'stress',
-      new FixedOptions()
+      new FixedOptions('Emphasis to put on speech')
         .addOption('1', 'Default')
         .addOption('2', 'None')
         .addOption('3', 'Reduced')
@@ -375,7 +362,7 @@ class AllowedValues {
 
     this.knownOptions.set(
       'volume',
-      new FixedOptions()
+      new FixedOptions('Volume of speech')
         .addOption('1', 'Default')
         .addOption('2', 'Whisper')
         .addOption('3', 'Soft')
@@ -386,16 +373,15 @@ class AllowedValues {
 
     this.knownOptions.set(
       'pitch',
-      new FixedOptions()
+      new FixedOptions('Pitch of speech')
         .addOption('1', 'Default')
-        .addOption('2', 'Low')
-        .addOption('3', 'Medium')
-        .addOption('4', 'High'),
+        .addOption('2', 'Lower')
+        .addOption('3', 'Higher'),
     );
 
     this.knownOptions.set(
       'pause-before',
-      new FixedOptions()
+      new FixedOptions('Pause length before this clip')
         .addOption('1', 'Default')
         .addOption('2', 'None')
         .addOption('3', 'Weak')
@@ -405,7 +391,7 @@ class AllowedValues {
 
     this.knownOptions.set(
       'pause-after',
-      new FixedOptions()
+      new FixedOptions('Pause length after this clip')
         .addOption('1', 'Default')
         .addOption('2', 'None')
         .addOption('3', 'Weak')
@@ -415,7 +401,7 @@ class AllowedValues {
 
     this.knownOptions.set(
       'balance',
-      new AutocompleteOptions()
+      new AutocompleteOptions('Where is the voice coming from')
         .addOption('Default')
         .addOption('Left')
         .addOption('Center')
@@ -436,28 +422,31 @@ class AllowedValues {
 
     this.knownOptions.set(
       'effects',
-      new AutocompleteOptions()
+      new AutocompleteOptions('Modify speech with sound effects')
         .addOption('Default')
         .addOption('Subvocalized')
         .addOption('Memory')
         .addOption('Royal Canterlot Voice'),
     );
+
   }
 
   requestSelection(
     range,
+    contextDescription,
     property,
+    propDescription,
     fixedOptionsModal,
     autocompleteModal,
     textFieldModal,
   ) {
     const options = this.knownOptions.get(property);
     if (!options) {
-      return textFieldModal.api.requestSelection(range, property, options);
+      return textFieldModal.api.requestSelection(range, propDescription, contextDescription, options);
     } else if (options instanceof FixedOptions) {
-      return fixedOptionsModal.api.requestSelection(range, property, options);
+      return fixedOptionsModal.api.requestSelection(range, propDescription, contextDescription, options);
     } else if (options instanceof AutocompleteOptions) {
-      return autocompleteModal.api.requestSelection(range, property, options);
+      return autocompleteModal.api.requestSelection(range, propDescription, contextDescription, options);
     }
 
     throw ('Missing options for property', property);
@@ -475,11 +464,12 @@ const createLabelSelectionModal = (useLabelingWindow) => {
       internal.labelingWindow.api.cancelSelection();
     });
 
-    api.requestSelection = (range, description, options) => {
+    api.requestSelection = (range, description, contextDescription, options) => {
       return new Promise((resolve, reject) => {
         const selectionPromise = internal.labelingWindow.api.requestSelection(
           description,
-          options,
+          contextDescription,
+          options
         );
         internal.selectionModal.api.showModal(range);
         selectionPromise
@@ -519,36 +509,26 @@ const useTextFieldSelectionModal = createLabelSelectionModal(useTextFieldWindow)
 
 const ALLOWED_VALUES = new AllowedValues();
 
-const getLabelHint = (property) => {
-  return PROP_HINTS.get(property);
-};
-
-const KNOWN_DESCRIPTIONS = [
-  new TemplateDescription(
-    'meta element="narrator" character="?"',
-    'Narrator',
-  ),
+const KNOWN_ACTION_DESCRIPTIONS = [
+  new TemplateDescription('meta object="narrator" character="?"', 'Narrator', ['Narrator voice']),
   new TemplateDescription('spoken character="?"', 'Speaker'),
-  new TemplateDescription(
-    'spoken character="{character}"',
-    'Speaker {character}',
-  ),
+  new TemplateDescription('spoken character="{character}"', 'Speaker {character}'),
   new TemplateDescription(
     'meta character="?" age="?" gender="?"',
     "Set a character's age, gender",
+    ['Character'],
   ),
   new TemplateDescription('spoken emotion="?"', 'Emotion'),
-  new TemplateDescription(
-    'spoken emotion="{emotion}"',
-    'Emotion {emotion}',
-  ),
+  new TemplateDescription('spoken emotion="{emotion}"', 'Emotion {emotion}'),
   new TemplateDescription(
     'meta character="{character}" emotion="?"',
     "Set {character}'s default emotion",
+    ['Default emotion'],
   ),
   new TemplateDescription(
     'meta character="?" emotion="?"',
     "Set a character's default emotion",
+    ['Character', 'Default emotion'],
   ),
   new TemplateDescription(
     'tuned rate="?" stress="?" volume="?" pitch="?"',
@@ -557,31 +537,38 @@ const KNOWN_DESCRIPTIONS = [
   new TemplateDescription(
     'meta character="?" rate="?" volume="?" pitch="?"',
     "Set a character's default rate, stress, volume, pitch",
+    ['Character', 'Default speaking rate', 'Default speaking volume', 'Default speaking pitch'],
   ),
   new TemplateDescription(
     'timed pause-before="?" pause-after="?"',
     'Pause before or after',
   ),
-  new TemplateDescription(
-    'positioned balance="?"',
-    'Speech positioning',
-  ),
-  new TemplateDescription(
-    'spoken-as pronunciation="?"',
-    'Pronunciation',
-  ),
-  new TemplateDescription('ignored', "Ignore this line"),
+  new TemplateDescription('positioned balance="?"', 'Speech positioning'),
+  new TemplateDescription('spoken-as pronunciation="?"', 'Pronunciation', ['Hybrid alphabet/arpabet pronunciation']),
+  new TemplateDescription('ignored', 'Ignore this line'),
   new TemplateDescription('voiced effects="?"', 'Sound effects'),
 ];
 
 const getLabelDescription = (partialLabel) => {
-  for (let knownDesc of KNOWN_DESCRIPTIONS) {
+  for (let knownDesc of KNOWN_ACTION_DESCRIPTIONS) {
     const result = knownDesc.getDescription(partialLabel);
     if (result) {
       return result;
     }
   }
 
+  return null;
+};
+
+const getPropDescription = (partialLabel, prop) => {
+  for (let knownDesc of KNOWN_ACTION_DESCRIPTIONS) {
+    const result = knownDesc.getDescription(partialLabel);
+    if (result) {
+      return knownDesc.getPropDescription(prop);
+    }
+  }
+
+  console.log('no match!');
   return null;
 };
 
@@ -600,12 +587,8 @@ const SingleEnabledClipkey = ({ shortcut, action, description }) => {
 
   return (
     <button className={containerClassName} onClick={action}>
-        <span className={descrClassName} >
-          {description}
-        </span>
-        <span className={shortcutClassName}>
-          {shortcut}
-        </span>
+      <span className={descrClassName}>{description}</span>
+      <span className={shortcutClassName}>{shortcut}</span>
     </button>
   );
 };
@@ -759,6 +742,10 @@ const useNavigator = (clipfics) => {
     if (!currentSelection) {
       currentSelection =
         internal.lastSelection || clipfics.api.storyNavigator.getInitialRange();
+
+      if (!currentSelection) {
+        return;
+      }
     }
 
     const nextSelection = getNextRange(currentSelection);
@@ -766,7 +753,10 @@ const useNavigator = (clipfics) => {
       internal.lastSelection = nextSelection;
       clipfics.api.selection.setRange(nextSelection);
 
-      new RangeUtils(nextSelection).scrollIntoView();
+      new RangeUtils(nextSelection).scrollIntoView({
+        behavior: 'auto',
+        block: 'end',
+      });
     }
   };
 
@@ -785,15 +775,6 @@ const useNavigator = (clipfics) => {
   };
 
   return { api };
-};
-
-const getLabelWithHint = (missingProp) => {
-  const hint = getLabelHint(missingProp);
-  if (hint) {
-    return `${missingProp} (${hint})`;
-  }
-
-  return missingProp;
 };
 
 const useLabeler = (clipfics) => {
@@ -823,9 +804,13 @@ const useLabeler = (clipfics) => {
 
     internal.requestPropsLoop
       .forEach(pendingLabel.missingTemplateProperties, (moveToNext) => {
+        const propDescription = getPropDescription(pendingLabel.template, internal.requestPropsLoop.currentItem);
+        const contextDescription = getLabelDescription(pendingLabel.template);
         ALLOWED_VALUES.requestSelection(
           internal.selectionCache.savedRange,
+          contextDescription,
           internal.requestPropsLoop.currentItem,
+          propDescription,
           internal.fixedOptionsModal,
           internal.autocompleteModal,
           internal.textFieldModal,
@@ -942,14 +927,4 @@ export default (clipfics) => {
     api,
     components,
   };
-};
-
-const useCookieSynthLabeler = () => {
-  const { api, components, internal } = synthComponent();
-
-  api.registerHint = null;
-  api.registerHotkey = null; // accepts either a template string or a function to call
-
-  components.Panel = null;
-  components.PromptModals = null;
 };

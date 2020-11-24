@@ -151,6 +151,10 @@ export default (terminal) => {
   };
 
   const download = () => {
+    if (!resourceManager.current || !resourceManager.current.getResourceState) {
+      return;
+    }
+
     const { name, content } = resourceManager.current.getResourceState();
     const a = document.createElement('a');
     a.setAttribute('href', window.URL.createObjectURL(content));

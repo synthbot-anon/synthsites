@@ -51,7 +51,7 @@ export default () => {
     const style = { position: 'fixed' };
 
     const breakpointX = window.innerWidth / 2;
-    const breakpointY = window.innerHeight / 2;
+    const breakpointY = window.innerHeight * 0.4;
 
     if (rect.top <= breakpointY) {
       style.top = rect.top + rect.height;

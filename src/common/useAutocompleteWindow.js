@@ -3,7 +3,7 @@ import { Modal } from '@material-ui/core';
 import { ThemeContext } from 'theme.js';
 import synthComponent, { synthSubscription } from 'common/synthComponent.js';
 import { Button, Divider } from '@material-ui/core';
-import { TextField } from '@material-ui/core';
+import { TextField, Typography } from '@material-ui/core';
 import Autocomplete, { createFilterOptions } from '@material-ui/lab/Autocomplete';
 import useForceUpdate from 'common/useForceUpdate.js';
 
@@ -22,13 +22,14 @@ export default () => {
   // capture hotkeys when this is shown
   // display list of options & hotkeys
 
-  api.requestSelection = (description, autocompleteOptions) => {
+  api.requestSelection = (description, context, autocompleteOptions) => {
     return new Promise((resolve, reject) => {
       if (!autocompleteOptions.options) {
         reject();
         return;
       }
 
+      internal.context = context;
       internal.description = description;
       internal.autocompleteOptions = autocompleteOptions;
       internal.options = autocompleteOptions.options;
@@ -70,6 +71,8 @@ export default () => {
     const { forceUpdate } = useForceUpdate();
     internal.displaySubscription.useSubscription(forceUpdate);
 
+    const titleClassName = classes['c-label-modal__title'];
+
     useEffect(() => {
       const hotkeyListener = (e) => {
         if (e.key === 'Escape') {
@@ -83,8 +86,15 @@ export default () => {
 
     return (
       <React.Fragment>
-        <p>{internal.description}</p>
-        <Divider />
+        {internal.context && (
+          <React.Fragment>
+            <Typography variable="h3" className={titleClassName} >
+              {internal.context}
+            </Typography>
+            <Divider />
+          </React.Fragment>
+        )}
+        <p>{internal.description || internal.autocompleteOptions.description}</p>
         <Autocomplete
           options={internal.options}
           autoHighlight
@@ -109,7 +119,6 @@ export default () => {
             return <div>{option}</div>;
           }}
           renderInput={(params) => {
-            console.log(params);
             params.inputProps.className = `${params.inputProps.className} ${classes['c-autocomplete__input']}`;
             return (
               <TextField
@@ -146,6 +155,11 @@ export default () => {
 
 export class AutocompleteOptions {
   options = [];
+  description;
+
+  constructor(description) {
+    this.description = description;
+  }
 
   addOption(option) {
     this.options.push(option);

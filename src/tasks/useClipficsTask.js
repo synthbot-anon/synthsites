@@ -117,7 +117,7 @@ class StandardHotkeySetter {
     this.changeNarrator = (shortcut) =>
       clipkeys.api.createLabelHotkey(
         shortcut,
-        'meta element="narrator" character="?"',
+        'meta object="narrator" character="?"',
       );
     this.labelSpeaker = (shortcut) =>
       clipkeys.api.createLabelHotkey(shortcut, 'spoken character="?"');

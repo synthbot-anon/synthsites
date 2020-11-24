@@ -79,6 +79,10 @@ export default class HtmlNavigator {
   }
 
   getInitialRange() {
+    if (!this.#containerRef.current) {
+      return;
+    }
+
     const startNode = leftMost(this.#containerRef.current);
     const result = new Range();
     result.setStart(startNode, 0);
@@ -182,6 +186,10 @@ export default class HtmlNavigator {
   }
 
   getNextPhrase(initialRange, regex) {
+    if (!initialRange) {
+      return;
+    }
+
     let section = this.getContainingSection(initialRange.endContainer);
     let testRange = initialRange;
 
@@ -218,6 +226,10 @@ export default class HtmlNavigator {
   }
 
   getPreviousPhrase(initialRange, regex) {
+    if (!initialRange) {
+      return;
+    }
+    
     let section = this.getContainingSection(initialRange.startContainer);
     let testRange = initialRange;
 

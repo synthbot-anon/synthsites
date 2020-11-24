@@ -139,7 +139,13 @@ export const useStyles = makeStyles({
     width: '30%',
   },
 
-  'c-labelmodal__textfield': {
+  'c-label-modal__title': {
+    'color': 'gray',
+    'text-align': 'center',
+
+  },
+
+  'c-label-modal__textfield': {
     width: '100%',
   },
 
